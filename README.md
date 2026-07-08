@@ -154,6 +154,35 @@ cd frontend
 npm run build
 ```
 
+## CI/CD
+
+GitHub Actions is wired for a free-account-friendly baseline:
+
+- `/.github/workflows/ci.yml` runs backend tests, frontend build, and `docker compose config`
+- `/.github/workflows/docker-publish.yml` builds and publishes backend and frontend container images to GitHub Container Registry
+
+The CI workflow runs on pushes to `main`, pull requests targeting `main`, and manual dispatches.
+
+The frontend does not have an automated test script yet, so the workflow validates that side by running a production build.
+
+The container publish workflow runs when you push a version tag such as `v1.0.0`, and it can also be triggered manually from the Actions tab.
+
+Example release flow:
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Published image names:
+
+- `ghcr.io/<your-github-username>/taskmanagement-backend`
+- `ghcr.io/<your-github-username>/taskmanagement-frontend`
+
+For image publishing to GitHub Container Registry, the workflow uses the repository `GITHUB_TOKEN`, so no extra registry password is required for the same GitHub owner. If you later add real deployment to a VPS, cloud VM, or platform service, you will still need environment-specific secrets there.
+
+The usernames and passwords inside `docker-compose.yml` are only for local development. Do not reuse those defaults as production or deployment secrets.
+
 ## Docker Setup
 
 Run the full stack with Docker Compose:
