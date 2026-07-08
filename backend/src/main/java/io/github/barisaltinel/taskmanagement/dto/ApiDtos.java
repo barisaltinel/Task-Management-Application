@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -120,6 +121,8 @@ public final class ApiDtos {
             @NotNull(message = "Priority is required")
             TaskPriority priority,
             TaskState state,
+            LocalDate startDate,
+            LocalDate dueDate,
             @NotNull(message = "Project id is required")
             Long projectId,
             @NotNull(message = "Assignee id is required")
@@ -133,6 +136,8 @@ public final class ApiDtos {
             String description,
             TaskState state,
             TaskPriority priority,
+            LocalDate startDate,
+            LocalDate dueDate,
             String reason,
             ProjectSummaryResponse project,
             UserSummaryResponse assignee

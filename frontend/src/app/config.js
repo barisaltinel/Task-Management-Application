@@ -23,14 +23,22 @@ export const EMPTY_WORKSPACE = {
 
 export const EMPTY_LOGIN_FORM = { email: "", password: "" };
 export const EMPTY_REGISTER_FORM = { name: "", email: "", password: "" };
-export const EMPTY_TASK_FORM = {
-  title: "",
-  description: "",
-  priority: "MEDIUM",
-  state: "BACKLOG",
-  projectId: "",
-  assigneeId: ""
-};
+export function buildEmptyTaskForm() {
+  const today = new Date();
+  const dueDate = new Date(today);
+  dueDate.setDate(dueDate.getDate() + 7);
+
+  return {
+    title: "",
+    description: "",
+    priority: "MEDIUM",
+    state: "BACKLOG",
+    startDate: today.toISOString().slice(0, 10),
+    dueDate: dueDate.toISOString().slice(0, 10),
+    projectId: "",
+    assigneeId: ""
+  };
+}
 export const EMPTY_PROJECT_FORM = {
   title: "",
   description: "",

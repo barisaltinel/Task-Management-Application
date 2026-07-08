@@ -28,6 +28,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
@@ -93,6 +94,9 @@ public class TaskServiceImpl implements TaskService {
         task.setProject(resolveProject(projectId));
         task.setAssignee(resolveUser(assigneeId));
         task.setState(TaskState.BACKLOG);
+        task.setStartDate(resolveStartDate(task.getStartDate()));
+        task.setDueDate(task.getDueDate());
+        validateSchedule(task.getStartDate(), task.getDueDate());
         task.setReason(null);
         task.setDeleted(false);
         Task savedTask = taskRepository.save(task);
@@ -123,6 +127,9 @@ public class TaskServiceImpl implements TaskService {
         existingTask.setDescription(taskDetails.getDescription());
         existingTask.setPriority(taskDetails.getPriority());
         existingTask.setState(taskDetails.getState());
+        existingTask.setStartDate(resolveStartDate(taskDetails.getStartDate()));
+        existingTask.setDueDate(taskDetails.getDueDate());
+        validateSchedule(existingTask.getStartDate(), existingTask.getDueDate());
         existingTask.setProject(resolveProject(projectId));
         existingTask.setAssignee(resolveUser(assigneeId));
         if (taskDetails.getState() != TaskState.CANCELLED) {
@@ -195,6 +202,16 @@ public class TaskServiceImpl implements TaskService {
 
     private @NonNull Long requireId(@Nullable Long id, String fieldName) {
         return Objects.requireNonNull(id, fieldName + " is required");
+    }
+
+    private LocalDate resolveStartDate(@Nullable LocalDate startDate) {
+        return startDate != null ? startDate : LocalDate.now();
+    }
+
+    private void validateSchedule(@NonNull LocalDate startDate, @Nullable LocalDate dueDate) {
+        if (dueDate != null && dueDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("Due date cannot be earlier than start date");
+        }
     }
 }
 

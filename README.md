@@ -1,6 +1,27 @@
 # Task Management Application
 
-Task management platform with a Spring Boot backend and a React frontend. The project supports role-based access control, project and task workflows, attachments, comments, and a Kanban-style task board.
+Task management platform built with a Spring Boot backend and a React frontend. The application is designed to feel closer to a modern work-management product than a simple CRUD panel, with role-based access control, project coordination, task planning, collaboration, and operational visibility.
+
+## Product Highlights
+
+- Role-aware workspace for `ADMIN`, `PROJECT_MANAGER`, `TEAM_LEADER`, and `TEAM_MEMBER`
+- Kanban-style task execution with richer planning signals
+- Task scheduling with `startDate` and `dueDate`
+- Executive overview with delivery risk and timeline visibility
+- Project health snapshots with completion progress
+- File uploads and comment threads attached directly to work items
+- Optional RabbitMQ domain events and Redis-backed shared caching
+- Dockerized full-stack setup for local demos and portfolio presentation
+
+## Core Capabilities
+
+- Authentication and token-based session flow
+- Project and task lifecycle management
+- Task command center with search, filters, risk focus, and roadmap timeline
+- Executive dashboard with overdue work, due-this-week visibility, and delivery pulse
+- Attachments and comments tied to tasks
+- Public system entry endpoints for friendlier first-run and deployment checks
+- GitHub Actions workflows for CI and container publishing
 
 ## Stack
 
@@ -34,6 +55,16 @@ Task-Management-Application/
 ```
 
 Backend package root: `io.github.barisaltinel.taskmanagement`
+
+## Recent Enhancements
+
+The current version includes a more productized planning layer inspired by tools such as Jira and monday.com:
+
+- tasks now support `startDate` and `dueDate`
+- backend validates delivery schedules before saving
+- frontend shows `Delivery Timeline`, `Roadmap Timeline`, overdue work, and upcoming deadlines
+- task creation now uses richer planning fields instead of a minimal form-only flow
+- overview pages surface team load, project health, and delivery risks for demo-ready storytelling
 
 ## Security Notes
 
@@ -136,6 +167,16 @@ Frontend default URL:
 
 - `http://localhost:5173`
 
+## Demo Experience
+
+For the best walkthrough, use the application in this order:
+
+1. Sign in with a role-based account.
+2. Open the overview screen to review delivery pulse, risk watch, and project health.
+3. Move to the task command center to filter work by assignee, priority, and deadline status.
+4. Use scheduled tasks to demonstrate roadmap and due-date visibility.
+5. Attach files and comments to show collaboration around execution.
+
 ## Test and Build
 
 Backend tests:
@@ -152,6 +193,13 @@ Frontend production build:
 ```powershell
 cd frontend
 npm run build
+```
+
+Backend packaging:
+
+```powershell
+cd backend
+mvn -DskipTests package
 ```
 
 ## CI/CD
@@ -182,7 +230,6 @@ Published image names:
 For image publishing to GitHub Container Registry, the workflow uses the repository `GITHUB_TOKEN`, so no extra registry password is required for the same GitHub owner. If you later add real deployment to a VPS, cloud VM, or platform service, you will still need environment-specific secrets there.
 
 The usernames and passwords inside `docker-compose.yml` are only for local development. Do not reuse those defaults as production or deployment secrets.
-
 ## Docker Setup
 
 Run the full stack with Docker Compose:
@@ -200,6 +247,18 @@ $env:FRONTEND_PORT="13000"
 docker compose up --build
 ```
 
+Example alternate host ports used successfully for this project:
+
+```powershell
+$env:MYSQL_PORT="3307"
+$env:RABBITMQ_PORT="5673"
+$env:RABBITMQ_MANAGEMENT_PORT="15673"
+$env:REDIS_PORT="6380"
+$env:BACKEND_PORT="18080"
+$env:FRONTEND_PORT="13000"
+docker compose up --build
+```
+
 This starts:
 
 - `mysql` on `localhost:3306`
@@ -208,6 +267,12 @@ This starts:
 - `redis` on `localhost:6379`
 - backend API on `http://localhost:8080`
 - frontend UI on `http://localhost:3000`
+
+With the alternate host-port example above, the URLs become:
+
+- frontend UI on `http://localhost:13000`
+- backend API on `http://localhost:18080`
+- RabbitMQ management UI on `http://localhost:15673`
 
 The compose stack wires the containers together like this:
 
@@ -226,6 +291,8 @@ Container files added for this flow:
 
 If you want different credentials or bootstrap admin values, adjust the environment block in `docker-compose.yml` before starting the stack.
 
+The usernames and passwords inside `docker-compose.yml` are for local development only. Do not reuse them in production.
+
 ## Main API Areas
 
 - `/api/auth`
@@ -241,3 +308,11 @@ If you want different credentials or bootstrap admin values, adjust the environm
 - `PROJECT_MANAGER`
 - `TEAM_LEADER`
 - `TEAM_MEMBER`
+
+## Positioning
+
+This repository now presents well as:
+
+- a portfolio-grade full-stack task management product
+- a bootcamp capstone evolved into a more production-minded workspace
+- a base for adding deeper product-management features such as task dependencies, automations, forms, and audit trails

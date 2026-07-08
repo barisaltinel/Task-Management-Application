@@ -54,6 +54,8 @@ public final class ApiMapper {
         task.setDescription(request.description());
         task.setPriority(request.priority());
         task.setState(request.state());
+        task.setStartDate(request.startDate());
+        task.setDueDate(request.dueDate());
         return task;
     }
 
@@ -112,6 +114,8 @@ public final class ApiMapper {
                 task.getDescription(),
                 task.getState(),
                 task.getPriority(),
+                task.getStartDate(),
+                task.getDueDate(),
                 task.getReason(),
                 toProjectSummary(task.getProject()),
                 toUserSummary(task.getAssignee())
