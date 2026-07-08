@@ -1,16 +1,16 @@
-import { VIEWS } from "../../app/config";
 import { humanize } from "../../shared/utils/format";
 
-export default function Sidebar({ email, view, setView, metrics }) {
+export default function Sidebar({ email, role, view, setView, views, metrics }) {
   return (
     <aside className="side-panel reveal">
       <div>
         <div className="brand-mark">TaskPulse</div>
         <p className="side-text">{email}</p>
+        <p className="side-role">{humanize(role || "workspace")}</p>
       </div>
 
       <nav className="side-nav">
-        {VIEWS.map((item) => (
+        {views.map((item) => (
           <button
             key={item}
             className={view === item ? "active" : ""}

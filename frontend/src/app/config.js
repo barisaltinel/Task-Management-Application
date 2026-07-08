@@ -1,4 +1,5 @@
 export const VIEWS = ["overview", "tasks", "projects", "files", "comments"];
+export const DEFAULT_VIEW = "overview";
 
 export const TASK_STATES = [
   "BACKLOG",
@@ -38,3 +39,27 @@ export const EMPTY_PROJECT_FORM = {
 };
 export const EMPTY_UPLOAD_FORM = { taskId: "", file: null };
 export const EMPTY_COMMENT_FORM = { taskId: "", text: "" };
+
+export function getAvailableViews(role, canManageProjects = false) {
+  const normalizedRole = typeof role === "string" ? role.trim().toUpperCase() : "";
+
+  if (canManageProjects || normalizedRole === "ADMIN" || normalizedRole === "PROJECT_MANAGER") {
+    return VIEWS;
+  }
+
+  return VIEWS.filter((view) => view !== "projects");
+}
+
+export function getDefaultViewForRole(role, canManageProjects = false) {
+  const normalizedRole = typeof role === "string" ? role.trim().toUpperCase() : "";
+
+  if (canManageProjects || normalizedRole === "ADMIN" || normalizedRole === "PROJECT_MANAGER") {
+    return "projects";
+  }
+
+  if (normalizedRole === "TEAM_LEADER" || normalizedRole === "TEAM_MEMBER") {
+    return "tasks";
+  }
+
+  return DEFAULT_VIEW;
+}

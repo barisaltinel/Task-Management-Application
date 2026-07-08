@@ -72,15 +72,16 @@ select {
 }
 
 .auth-card {
-  width: min(520px, 100%);
+  width: min(1120px, 100%);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow);
-  padding: 30px;
+  padding: 0;
   display: grid;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(340px, 460px);
+  overflow: hidden;
 }
 
 .brand-mark {
@@ -93,6 +94,79 @@ select {
   background: rgba(12, 139, 125, 0.12);
   border-radius: 999px;
   padding: 6px 12px;
+}
+
+.auth-showcase {
+  position: relative;
+  padding: 38px 34px;
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  background:
+    linear-gradient(160deg, rgba(255, 253, 248, 0.7), rgba(255, 255, 255, 0.4)),
+    radial-gradient(circle at top left, rgba(12, 139, 125, 0.14), transparent 38%),
+    radial-gradient(circle at bottom right, rgba(232, 107, 53, 0.18), transparent 32%);
+}
+
+.auth-showcase::after {
+  content: "";
+  position: absolute;
+  inset: 18px 0 18px auto;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--line), transparent);
+}
+
+.auth-eyebrow {
+  color: var(--accent-deep);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.auth-lead {
+  max-width: 48ch;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.auth-highlights {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.auth-highlights div {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid rgba(25, 37, 47, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.auth-highlights span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.auth-panel {
+  padding: 30px;
+  display: grid;
+  align-content: center;
+  gap: 18px;
+}
+
+.auth-panel__header {
+  display: grid;
+  gap: 16px;
+}
+
+.auth-panel__header p {
+  margin-top: 8px;
+  color: var(--muted);
+  line-height: 1.5;
 }
 
 .auth-toggle {
@@ -117,6 +191,12 @@ select {
 .auth-toggle button.active {
   color: var(--surface-solid);
   background: linear-gradient(120deg, var(--accent), var(--accent-deep));
+}
+
+.auth-footnote {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .stack-form {
@@ -218,6 +298,33 @@ select {
   border-radius: 12px;
   padding: 11px 12px;
   font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.notice__copy {
+  display: grid;
+  gap: 3px;
+}
+
+.notice__copy strong {
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.notice__dismiss {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .notice.success {
@@ -260,6 +367,15 @@ select {
 .side-text {
   color: var(--muted);
   margin-top: 8px;
+}
+
+.side-role {
+  margin-top: 6px;
+  color: var(--accent-deep);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .side-nav {
@@ -640,6 +756,16 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .auth-card {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-showcase::after {
+    inset: auto 18px 0 18px;
+    width: auto;
+    height: 1px;
+  }
+
   .side-panel {
     display: none;
   }
@@ -666,8 +792,12 @@ select {
 
 @media (max-width: 680px) {
   .main-panel,
-  .auth-card {
+  .auth-panel {
     padding: 16px;
+  }
+
+  .auth-showcase {
+    padding: 22px 16px;
   }
 
   .view-grid {

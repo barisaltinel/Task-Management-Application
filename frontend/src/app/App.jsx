@@ -17,6 +17,7 @@ import {
   saveSession
 } from "../shared/utils/session";
 import {
+  DEFAULT_VIEW,
   EMPTY_COMMENT_FORM,
   EMPTY_LOGIN_FORM,
   EMPTY_PROJECT_FORM,
@@ -24,12 +25,14 @@ import {
   EMPTY_TASK_FORM,
   EMPTY_UPLOAD_FORM,
   EMPTY_WORKSPACE,
+  getAvailableViews,
+  getDefaultViewForRole,
   TASK_STATES
 } from "./config";
 
 export default function App() {
   const [session, setSession] = useState(readSession);
-  const [view, setView] = useState("overview");
+  const [view, setView] = useState(DEFAULT_VIEW);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState({ type: "", text: "" });
   const [authMode, setAuthMode] = useState("login");
@@ -42,6 +45,11 @@ export default function App() {
   const [projectForm, setProjectForm] = useState(EMPTY_PROJECT_FORM);
   const [uploadForm, setUploadForm] = useState(EMPTY_UPLOAD_FORM);
   const [commentForm, setCommentForm] = useState(EMPTY_COMMENT_FORM);
+  const role = session?.user?.role || "";
+  const availableViews = useMemo(
+    () => getAvailableViews(role, canManageProjects),
+    [role, canManageProjects]
+  );
 
   const metrics = useMemo(
     () => ({
@@ -62,24 +70,45 @@ export default function App() {
     [workspace.tasks]
   );
 
+  function showNotice(nextNotice) {
+    setNotice((currentNotice) => ({
+      title: "",
+      ...currentNotice,
+      ...nextNotice
+    }));
+  }
+
+  function dismissNotice() {
+    setNotice({ type: "", text: "", title: "" });
+  }
+
   function clearActiveSession(message = "Your session has expired. Please sign in again.") {
     clearSession();
     setSession(null);
     setWorkspace(EMPTY_WORKSPACE);
     setCanManageProjects(false);
-    setView("overview");
-    setNotice({ type: "info", text: message });
+    setView(DEFAULT_VIEW);
+    setAuthMode("login");
+    showNotice({
+      type: "info",
+      title: "Session ended",
+      text: message
+    });
   }
 
   function handleProtectedError(error, fallbackMessage) {
     if (error?.status === 401) {
       clearActiveSession(
-        error.message || "Your session has expired. Please sign in again."
+        error.message || "Your session ended. Sign in again to continue."
       );
       return true;
     }
 
-    setNotice({ type: "error", text: error?.message || fallbackMessage });
+    showNotice({
+      type: "error",
+      title: "Request failed",
+      text: error?.message || fallbackMessage
+    });
     return false;
   }
 
@@ -107,7 +136,11 @@ export default function App() {
 
     setCanManageProjects(projects.status === "fulfilled");
     if (showSyncNotice) {
-      setNotice({ type: "success", text: "Data synchronized." });
+      showNotice({
+        type: "success",
+        title: "Workspace updated",
+        text: "Data synchronized."
+      });
     }
 
     setLoading(false);
@@ -125,10 +158,19 @@ export default function App() {
       const nextSession = createSession(authPayload, loginForm.email);
       saveSession(nextSession);
       setSession(nextSession);
+      setView(getDefaultViewForRole(nextSession.user?.role));
       setLoginForm(EMPTY_LOGIN_FORM);
-      setNotice({ type: "success", text: "Welcome back." });
+      showNotice({
+        type: "success",
+        title: "Signed in",
+        text: "Welcome back. Your workspace is syncing now."
+      });
     } catch (error) {
-      setNotice({ type: "error", text: error.message || "Sign in failed." });
+      showNotice({
+        type: "error",
+        title: "Sign-in failed",
+        text: error.message || "Sign in failed."
+      });
     } finally {
       setLoading(false);
     }
@@ -144,9 +186,17 @@ export default function App() {
       });
       setAuthMode("login");
       setRegisterForm(EMPTY_REGISTER_FORM);
-      setNotice({ type: "success", text: "Account created. Please sign in." });
+      showNotice({
+        type: "success",
+        title: "Account created",
+        text: "Please sign in to open your workspace."
+      });
     } catch (error) {
-      setNotice({ type: "error", text: error.message || "Registration failed." });
+      showNotice({
+        type: "error",
+        title: "Registration failed",
+        text: error.message || "Registration failed."
+      });
     } finally {
       setLoading(false);
     }
@@ -163,8 +213,13 @@ export default function App() {
     setSession(null);
     setWorkspace(EMPTY_WORKSPACE);
     setCanManageProjects(false);
-    setView("overview");
-    setNotice({ type: "info", text: "Logged out." });
+    setView(DEFAULT_VIEW);
+    setAuthMode("login");
+    showNotice({
+      type: "info",
+      title: "Signed out",
+      text: "You have signed out of this tab."
+    });
   }
 
   async function handleTaskCreate(event) {
@@ -188,7 +243,11 @@ export default function App() {
       if (!synced) {
         return;
       }
-      setNotice({ type: "success", text: "Task created." });
+      showNotice({
+        type: "success",
+        title: "Task created",
+        text: "Your task was added successfully."
+      });
     } catch (error) {
       handleProtectedError(error, "Task creation failed.");
     } finally {
@@ -308,6 +367,24 @@ export default function App() {
     }
   }, [session?.token]);
 
+  useEffect(() => {
+    if (!availableViews.includes(view)) {
+      setView(getDefaultViewForRole(role, canManageProjects));
+    }
+  }, [availableViews, canManageProjects, role, view]);
+
+  useEffect(() => {
+    if (!notice?.text || notice.type === "error") {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      dismissNotice();
+    }, 4200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [notice]);
+
   if (!session?.token) {
     return (
       <AuthView
@@ -321,6 +398,7 @@ export default function App() {
         onLogin={handleLogin}
         onRegister={handleRegister}
         notice={notice}
+        onDismissNotice={dismissNotice}
       />
     );
   }
@@ -329,18 +407,21 @@ export default function App() {
     <div className="app-shell">
       <Sidebar
         email={session.email || session.name}
+        role={role}
         view={view}
         setView={setView}
+        views={availableViews}
         metrics={metrics}
       />
 
       <main className="main-panel">
         <TopHeader
+          role={role}
           onRefresh={() => loadWorkspace(session.token, true)}
           onLogout={handleLogout}
         />
-        <MobileNav view={view} setView={setView} />
-        <Notice notice={notice} />
+        <MobileNav view={view} setView={setView} views={availableViews} />
+        <Notice notice={notice} onDismiss={dismissNotice} />
 
         {view === "overview" && <OverviewView metrics={metrics} />}
 
