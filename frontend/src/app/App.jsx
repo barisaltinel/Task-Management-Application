@@ -26,8 +26,7 @@ import {
   EMPTY_UPLOAD_FORM,
   EMPTY_WORKSPACE,
   getAvailableViews,
-  getDefaultViewForRole,
-  TASK_STATES
+  getDefaultViewForRole
 } from "./config";
 
 export default function App() {
@@ -56,18 +55,139 @@ export default function App() {
       total: workspace.tasks.length,
       done: workspace.tasks.filter((task) => task.state === "COMPLETED").length,
       blocked: workspace.tasks.filter((task) => task.state === "BLOCKED").length,
-      critical: workspace.tasks.filter((task) => task.priority === "CRITICAL").length
+      critical: workspace.tasks.filter((task) => task.priority === "CRITICAL").length,
+      activeProjects: workspace.projects.filter((project) => project.status === "IN_PROGRESS").length
     }),
-    [workspace.tasks]
+    [workspace.projects, workspace.tasks]
   );
 
-  const board = useMemo(
+  const selectableUsers = useMemo(() => {
+    const usersById = new Map();
+
+    const registerUser = (user) => {
+      if (!user?.id || usersById.has(user.id)) {
+        return;
+      }
+
+      usersById.set(user.id, user);
+    };
+
+    workspace.projects.forEach((project) => {
+      (project.teamMembers || []).forEach(registerUser);
+    });
+    workspace.tasks.forEach((task) => registerUser(task.assignee));
+
+    return Array.from(usersById.values()).sort((left, right) =>
+      (left.name || "").localeCompare(right.name || "", undefined, { sensitivity: "base" })
+    );
+  }, [workspace.projects, workspace.tasks]);
+
+  const projectSnapshots = useMemo(
     () =>
-      TASK_STATES.map((state) => ({
-        state,
-        tasks: workspace.tasks.filter((task) => task.state === state)
-      })),
-    [workspace.tasks]
+      workspace.projects
+        .map((project) => {
+          const projectTasks = workspace.tasks.filter((task) => task.project?.id === project.id);
+          const completedCount = projectTasks.filter((task) => task.state === "COMPLETED").length;
+          const blockedCount = projectTasks.filter((task) => task.state === "BLOCKED").length;
+          const criticalCount = projectTasks.filter(
+            (task) => task.priority === "CRITICAL" && task.state !== "COMPLETED"
+          ).length;
+
+          return {
+            ...project,
+            taskCount: projectTasks.length,
+            completedCount,
+            blockedCount,
+            criticalCount,
+            teamCount: project.teamMembers?.length || 0,
+            completionRate: projectTasks.length
+              ? Math.round((completedCount / projectTasks.length) * 100)
+              : 0
+          };
+        })
+        .sort((left, right) => right.taskCount - left.taskCount),
+    [workspace.projects, workspace.tasks]
+  );
+
+  const overview = useMemo(
+    () => {
+      const openTasks = workspace.tasks.filter(
+        (task) => !["COMPLETED", "CANCELLED"].includes(task.state)
+      );
+      const atRiskTasks = workspace.tasks
+        .filter(
+          (task) =>
+            task.state === "BLOCKED" ||
+            (task.priority === "CRITICAL" && task.state !== "COMPLETED") ||
+            task.state === "CANCELLED"
+        )
+        .sort((left, right) => {
+          const leftWeight =
+            left.state === "BLOCKED" ? 3 : left.priority === "CRITICAL" ? 2 : 1;
+          const rightWeight =
+            right.state === "BLOCKED" ? 3 : right.priority === "CRITICAL" ? 2 : 1;
+          return rightWeight - leftWeight;
+        });
+      const completionRate = metrics.total ? Math.round((metrics.done / metrics.total) * 100) : 0;
+      const openWorkRate = metrics.total
+        ? Math.round((openTasks.length / metrics.total) * 100)
+        : 0;
+      const collaborationVolume = workspace.comments.length + workspace.attachments.length;
+      const teamLoad = selectableUsers
+        .map((user) => {
+          const assignedTasks = workspace.tasks.filter((task) => task.assignee?.id === user.id);
+          const activeCount = assignedTasks.filter(
+            (task) => !["COMPLETED", "CANCELLED"].includes(task.state)
+          ).length;
+
+          return {
+            id: user.id,
+            name: user.name,
+            role: user.role,
+            totalCount: assignedTasks.length,
+            activeCount,
+            blockedCount: assignedTasks.filter((task) => task.state === "BLOCKED").length,
+            criticalCount: assignedTasks.filter(
+              (task) => task.priority === "CRITICAL" && task.state !== "COMPLETED"
+            ).length
+          };
+        })
+        .filter((entry) => entry.totalCount > 0)
+        .sort((left, right) => right.activeCount - left.activeCount)
+        .slice(0, 5);
+      const recentComments = [...workspace.comments]
+        .sort(
+          (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+        )
+        .slice(0, 4);
+      const recentFiles = [...workspace.attachments]
+        .sort(
+          (left, right) =>
+            new Date(right.uploadedAt).getTime() - new Date(left.uploadedAt).getTime()
+        )
+        .slice(0, 4);
+
+      let pulseLabel = "Building momentum";
+      if (completionRate >= 70 && metrics.blocked <= 1) {
+        pulseLabel = "Healthy delivery pace";
+      } else if (atRiskTasks.length >= 4 || metrics.blocked >= 3) {
+        pulseLabel = "Needs leadership attention";
+      }
+
+      return {
+        completionRate,
+        openWorkRate,
+        collaborationVolume,
+        atRiskTasks: atRiskTasks.slice(0, 5),
+        atRiskCount: atRiskTasks.length,
+        teamLoad,
+        recentComments,
+        recentFiles,
+        projectSnapshots: projectSnapshots.slice(0, 4),
+        pulseLabel
+      };
+    },
+    [metrics, projectSnapshots, selectableUsers, workspace.attachments, workspace.comments, workspace.tasks]
   );
 
   function showNotice(nextNotice) {
@@ -417,13 +537,14 @@ export default function App() {
       <main className="main-panel">
         <TopHeader
           role={role}
+          overview={overview}
           onRefresh={() => loadWorkspace(session.token, true)}
           onLogout={handleLogout}
         />
         <MobileNav view={view} setView={setView} views={availableViews} />
         <Notice notice={notice} onDismiss={dismissNotice} />
 
-        {view === "overview" && <OverviewView metrics={metrics} />}
+        {view === "overview" && <OverviewView metrics={metrics} overview={overview} />}
 
         {view === "tasks" && (
           <TasksView
@@ -431,7 +552,9 @@ export default function App() {
             setTaskForm={setTaskForm}
             onTaskCreate={handleTaskCreate}
             loading={loading}
-            board={board}
+            tasks={workspace.tasks}
+            projects={workspace.projects}
+            users={selectableUsers}
             onTaskStateChange={handleTaskStateChange}
             onTaskCancel={handleTaskCancel}
           />
@@ -445,6 +568,7 @@ export default function App() {
             canManageProjects={canManageProjects}
             loading={loading}
             projects={workspace.projects}
+            projectSnapshots={projectSnapshots}
           />
         )}
 
@@ -454,6 +578,7 @@ export default function App() {
             setUploadForm={setUploadForm}
             onUpload={handleUpload}
             loading={loading}
+            tasks={workspace.tasks}
             attachments={workspace.attachments}
           />
         )}
@@ -464,6 +589,7 @@ export default function App() {
             setCommentForm={setCommentForm}
             onCommentCreate={handleCommentCreate}
             loading={loading}
+            tasks={workspace.tasks}
             comments={workspace.comments}
           />
         )}

@@ -3,6 +3,7 @@ export default function FilesView({
   setUploadForm,
   onUpload,
   loading,
+  tasks,
   attachments
 }) {
   return (
@@ -14,14 +15,21 @@ export default function FilesView({
 
         <form className="stack-form" onSubmit={onUpload}>
           <label>
-            Task ID
-            <input
-              type="number"
+            Task
+            <select
+              className="modern-select"
               value={uploadForm.taskId}
               onChange={(event) =>
                 setUploadForm((prev) => ({ ...prev, taskId: event.target.value }))
               }
-            />
+            >
+              <option value="">Select task</option>
+              {tasks.map((task) => (
+                <option key={task.id} value={task.id}>
+                  {task.title} - {task.project?.title || "No project"}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label>
@@ -56,6 +64,7 @@ export default function FilesView({
                 <strong>{file.fileName}</strong>
                 <small>
                   {file.mimeType} | {(file.fileSize / 1024).toFixed(1)} KB
+                  {file.taskId ? ` | Task #${file.taskId}` : ""}
                 </small>
               </div>
             </div>

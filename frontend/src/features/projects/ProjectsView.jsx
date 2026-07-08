@@ -7,7 +7,8 @@ export default function ProjectsView({
   onProjectCreate,
   canManageProjects,
   loading,
-  projects
+  projects,
+  projectSnapshots
 }) {
   return (
     <section className="split-view">
@@ -87,7 +88,7 @@ export default function ProjectsView({
         </header>
 
         <div className="tile-grid">
-          {projects.map((project) => (
+          {projectSnapshots.map((project) => (
             <div className="project-tile" key={project.id}>
               <strong>{project.title}</strong>
               <p>{project.description}</p>
@@ -96,6 +97,15 @@ export default function ProjectsView({
                   {humanize(project.status)}
                 </span>
                 <span>{project.departmentName}</span>
+              </div>
+              <div className="project-progress">
+                <div className="health-bar">
+                  <span style={{ width: `${project.completionRate}%` }} />
+                </div>
+                <small>
+                  {project.completionRate}% complete | {project.taskCount} tasks | {project.teamCount}{" "}
+                  teammates
+                </small>
               </div>
             </div>
           ))}
