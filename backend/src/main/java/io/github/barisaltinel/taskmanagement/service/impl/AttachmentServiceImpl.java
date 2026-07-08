@@ -1,5 +1,7 @@
 package io.github.barisaltinel.taskmanagement.service.impl;
 
+import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheCoordinator;
+import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheNames;
 import io.github.barisaltinel.taskmanagement.model.Attachment;
 import io.github.barisaltinel.taskmanagement.model.Task;
 import io.github.barisaltinel.taskmanagement.repository.AttachmentRepository;
@@ -9,7 +11,13 @@ import io.github.barisaltinel.taskmanagement.exception.AccessDeniedException;
 import io.github.barisaltinel.taskmanagement.exception.AttachmentNotFoundException;
 import io.github.barisaltinel.taskmanagement.exception.EmptyFileException;
 import io.github.barisaltinel.taskmanagement.exception.TaskNotFoundException;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEntityType;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventAction;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventPublisher;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEvents;
 import io.github.barisaltinel.taskmanagement.util.SecurityUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.lang.NonNull;
@@ -35,6 +43,8 @@ public class AttachmentServiceImpl implements AttachmentService {
 
     private final AttachmentRepository attachmentRepository;
     private final TaskRepository taskRepository;
+    private TaskManagementEventPublisher eventPublisher = TaskManagementEventPublisher.noOp();
+    private TaskManagementCacheCoordinator cacheCoordinator = TaskManagementCacheCoordinator.noOp();
 
     public AttachmentServiceImpl(AttachmentRepository attachmentRepository, TaskRepository taskRepository) {
         this.attachmentRepository = attachmentRepository;
@@ -42,6 +52,10 @@ public class AttachmentServiceImpl implements AttachmentService {
     }
 
     @Override
+    @Cacheable(
+            cacheNames = TaskManagementCacheNames.ATTACHMENT_LIST,
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()"
+    )
     public List<Attachment> getAllAttachments() {
         if (SecurityUtils.hasAnyRole("ADMIN", "PROJECT_MANAGER", "TEAM_LEADER")) {
             return attachmentRepository.findAllByDeletedFalseAndTaskDeletedFalseAndTaskProjectDeletedFalseOrderByIdAsc();
@@ -57,6 +71,10 @@ public class AttachmentServiceImpl implements AttachmentService {
     }
 
     @Override
+    @Cacheable(
+            cacheNames = TaskManagementCacheNames.ATTACHMENT_DETAILS,
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)"
+    )
     public Attachment findById(Long id) {
         Long requiredId = requireId(id, "Attachment id");
 
@@ -118,7 +136,16 @@ public class AttachmentServiceImpl implements AttachmentService {
         attachment.setUploadedAt(LocalDateTime.now());
         attachment.setDeleted(false);
 
-        return attachmentRepository.save(attachment);
+        Attachment savedAttachment = attachmentRepository.save(attachment);
+        Attachment persistedAttachment = savedAttachment != null ? savedAttachment : attachment;
+        cacheCoordinator.evictWorkspaceCaches();
+        eventPublisher.publish(TaskManagementEvents.create(
+                TaskManagementEntityType.ATTACHMENT,
+                persistedAttachment.getId(),
+                TaskManagementEventAction.UPLOADED,
+                "Uploaded attachment " + persistedAttachment.getFileName()
+        ));
+        return persistedAttachment;
     }
 
     @Override
@@ -130,7 +157,16 @@ public class AttachmentServiceImpl implements AttachmentService {
 
         Attachment existingAttachment = findById(id);
         existingAttachment.setFileName(sanitizeFileName(updatedAttachment.getFileName()));
-        return attachmentRepository.save(existingAttachment);
+        Attachment savedAttachment = attachmentRepository.save(existingAttachment);
+        Attachment persistedAttachment = savedAttachment != null ? savedAttachment : existingAttachment;
+        cacheCoordinator.evictWorkspaceCaches();
+        eventPublisher.publish(TaskManagementEvents.create(
+                TaskManagementEntityType.ATTACHMENT,
+                persistedAttachment.getId(),
+                TaskManagementEventAction.UPDATED,
+                "Renamed attachment " + persistedAttachment.getFileName()
+        ));
+        return persistedAttachment;
     }
 
     @Override
@@ -138,7 +174,29 @@ public class AttachmentServiceImpl implements AttachmentService {
     public void softDelete(Long id) {
         Attachment attachment = findById(id);
         attachment.markAsDeleted();
-        attachmentRepository.save(attachment);
+        Attachment savedAttachment = attachmentRepository.save(attachment);
+        Attachment persistedAttachment = savedAttachment != null ? savedAttachment : attachment;
+        cacheCoordinator.evictWorkspaceCaches();
+        eventPublisher.publish(TaskManagementEvents.create(
+                TaskManagementEntityType.ATTACHMENT,
+                persistedAttachment.getId(),
+                TaskManagementEventAction.DELETED,
+                "Deleted attachment " + persistedAttachment.getFileName()
+        ));
+    }
+
+    @Autowired(required = false)
+    public void setEventPublisher(TaskManagementEventPublisher eventPublisher) {
+        if (eventPublisher != null) {
+            this.eventPublisher = eventPublisher;
+        }
+    }
+
+    @Autowired
+    public void setCacheCoordinator(TaskManagementCacheCoordinator cacheCoordinator) {
+        if (cacheCoordinator != null) {
+            this.cacheCoordinator = cacheCoordinator;
+        }
     }
 
     private void validateTaskAccess(Task task) {

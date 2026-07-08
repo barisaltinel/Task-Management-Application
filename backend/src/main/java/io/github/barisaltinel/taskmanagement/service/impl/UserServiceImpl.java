@@ -1,10 +1,18 @@
 package io.github.barisaltinel.taskmanagement.service.impl;
 
+import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheCoordinator;
+import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheNames;
+import io.github.barisaltinel.taskmanagement.exception.UserNotFoundException;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEntityType;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventAction;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventPublisher;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEvents;
 import io.github.barisaltinel.taskmanagement.model.User;
 import io.github.barisaltinel.taskmanagement.repository.UserRepository;
 import io.github.barisaltinel.taskmanagement.service.UserService;
-import io.github.barisaltinel.taskmanagement.exception.UserNotFoundException;
 import io.github.barisaltinel.taskmanagement.util.SecurityUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -21,6 +29,8 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private TaskManagementEventPublisher eventPublisher = TaskManagementEventPublisher.noOp();
+    private TaskManagementCacheCoordinator cacheCoordinator = TaskManagementCacheCoordinator.noOp();
 
     public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -28,11 +38,19 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(
+            cacheNames = TaskManagementCacheNames.USER_LIST,
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()"
+    )
     public List<User> getAllUsers() {
         return userRepository.findAllByDeletedFalseOrderByIdAsc();
     }
 
     @Override
+    @Cacheable(
+            cacheNames = TaskManagementCacheNames.USER_DETAILS,
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)"
+    )
     public User findById(Long id) {
         Long requiredId = requireId(id, "User id");
 
@@ -47,7 +65,16 @@ public class UserServiceImpl implements UserService {
         }
 
         validateAndPrepareForSave(user, false);
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        User persistedUser = savedUser != null ? savedUser : user;
+        evictCachesAfterUserWrite();
+        eventPublisher.publish(TaskManagementEvents.create(
+                TaskManagementEntityType.USER,
+                persistedUser.getId(),
+                TaskManagementEventAction.CREATED,
+                "Created user " + persistedUser.getEmail()
+        ));
+        return persistedUser;
     }
 
     @Override
@@ -58,7 +85,17 @@ public class UserServiceImpl implements UserService {
 
         user.setRole(DEFAULT_ROLE);
         validateAndPrepareForSave(user, true);
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        User persistedUser = savedUser != null ? savedUser : user;
+        evictCachesAfterUserWrite();
+        eventPublisher.publish(TaskManagementEvents.create(
+                TaskManagementEntityType.USER,
+                persistedUser.getId(),
+                TaskManagementEventAction.REGISTERED,
+                persistedUser.getEmail(),
+                "Registered a new account"
+        ));
+        return persistedUser;
     }
 
     @Override
@@ -90,14 +127,50 @@ public class UserServiceImpl implements UserService {
             existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
         }
 
-        return userRepository.save(existingUser);
+        User savedUser = userRepository.save(existingUser);
+        User persistedUser = savedUser != null ? savedUser : existingUser;
+        evictCachesAfterUserWrite();
+        eventPublisher.publish(TaskManagementEvents.create(
+                TaskManagementEntityType.USER,
+                persistedUser.getId(),
+                TaskManagementEventAction.UPDATED,
+                "Updated user " + persistedUser.getEmail()
+        ));
+        return persistedUser;
     }
 
     @Override
     public void softDelete(Long id) {
         User user = findById(id);
         user.softDelete();
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        User persistedUser = savedUser != null ? savedUser : user;
+        evictCachesAfterUserWrite();
+        eventPublisher.publish(TaskManagementEvents.create(
+                TaskManagementEntityType.USER,
+                persistedUser.getId(),
+                TaskManagementEventAction.DELETED,
+                "Archived user " + persistedUser.getEmail()
+        ));
+    }
+
+    @Autowired(required = false)
+    public void setEventPublisher(TaskManagementEventPublisher eventPublisher) {
+        if (eventPublisher != null) {
+            this.eventPublisher = eventPublisher;
+        }
+    }
+
+    @Autowired
+    public void setCacheCoordinator(TaskManagementCacheCoordinator cacheCoordinator) {
+        if (cacheCoordinator != null) {
+            this.cacheCoordinator = cacheCoordinator;
+        }
+    }
+
+    private void evictCachesAfterUserWrite() {
+        cacheCoordinator.evictUserCaches();
+        cacheCoordinator.evictWorkspaceCaches();
     }
 
     private void validateAndPrepareForSave(User user, boolean forceDefaultRole) {
