@@ -1,10 +1,15 @@
 package io.github.barisaltinel.taskmanagement.service.impl;
 
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEntityType;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventAction;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventPublisher;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEvents;
 import io.github.barisaltinel.taskmanagement.model.AuthToken;
 import io.github.barisaltinel.taskmanagement.model.User;
 import io.github.barisaltinel.taskmanagement.repository.AuthTokenRepository;
 import io.github.barisaltinel.taskmanagement.repository.UserRepository;
 import io.github.barisaltinel.taskmanagement.service.AuthService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,6 +34,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final AuthTokenRepository authTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private TaskManagementEventPublisher eventPublisher = TaskManagementEventPublisher.noOp();
 
     public AuthServiceImpl(
             UserRepository userRepository,
@@ -60,9 +66,17 @@ public class AuthServiceImpl implements AuthService {
         authToken.setUser(user);
         authToken.setExpiresAt(LocalDateTime.now().plusHours(SESSION_HOURS));
         authToken.setRevoked(false);
-        authTokenRepository.save(authToken);
+        AuthToken savedToken = authTokenRepository.save(authToken);
+        AuthToken persistedToken = savedToken != null ? savedToken : authToken;
+        eventPublisher.publish(TaskManagementEvents.create(
+                TaskManagementEntityType.AUTH_SESSION,
+                persistedToken.getId(),
+                TaskManagementEventAction.LOGGED_IN,
+                user.getEmail(),
+                "Started a new session"
+        ));
 
-        return new AuthSession(rawToken, authToken.getExpiresAt(), user);
+        return new AuthSession(rawToken, persistedToken.getExpiresAt(), user);
     }
 
     @Override
@@ -94,7 +108,25 @@ public class AuthServiceImpl implements AuthService {
         }
 
         authTokenRepository.findByTokenHashAndRevokedFalse(hashToken(rawToken.trim()))
-                .ifPresent(token -> token.setRevoked(true));
+                .ifPresent(token -> {
+                    token.setRevoked(true);
+                    User user = token.getUser();
+                    String actor = user != null ? user.getEmail() : null;
+                    eventPublisher.publish(TaskManagementEvents.create(
+                            TaskManagementEntityType.AUTH_SESSION,
+                            token.getId(),
+                            TaskManagementEventAction.LOGGED_OUT,
+                            actor,
+                            "Closed an active session"
+                    ));
+                });
+    }
+
+    @Autowired(required = false)
+    public void setEventPublisher(TaskManagementEventPublisher eventPublisher) {
+        if (eventPublisher != null) {
+            this.eventPublisher = eventPublisher;
+        }
     }
 
     private String generateToken() {

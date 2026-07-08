@@ -1,19 +1,28 @@
 package io.github.barisaltinel.taskmanagement.service.impl;
 
-import io.github.barisaltinel.taskmanagement.model.Task;
-import io.github.barisaltinel.taskmanagement.model.TaskState;
-import io.github.barisaltinel.taskmanagement.model.Project;
-import io.github.barisaltinel.taskmanagement.model.User;
-import io.github.barisaltinel.taskmanagement.repository.ProjectRepository;
-import io.github.barisaltinel.taskmanagement.repository.TaskRepository;
-import io.github.barisaltinel.taskmanagement.repository.UserRepository;
-import io.github.barisaltinel.taskmanagement.service.TaskService;
+import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheCoordinator;
+import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys;
+import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheNames;
 import io.github.barisaltinel.taskmanagement.exception.AccessDeniedException;
 import io.github.barisaltinel.taskmanagement.exception.ProjectNotFoundException;
 import io.github.barisaltinel.taskmanagement.exception.TaskCannotBeModifiedException;
 import io.github.barisaltinel.taskmanagement.exception.TaskNotFoundException;
 import io.github.barisaltinel.taskmanagement.exception.UserNotFoundException;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEntityType;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventAction;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventPublisher;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEvents;
+import io.github.barisaltinel.taskmanagement.model.Project;
+import io.github.barisaltinel.taskmanagement.model.Task;
+import io.github.barisaltinel.taskmanagement.model.TaskState;
+import io.github.barisaltinel.taskmanagement.model.User;
+import io.github.barisaltinel.taskmanagement.repository.ProjectRepository;
+import io.github.barisaltinel.taskmanagement.repository.TaskRepository;
+import io.github.barisaltinel.taskmanagement.repository.UserRepository;
+import io.github.barisaltinel.taskmanagement.service.TaskService;
 import io.github.barisaltinel.taskmanagement.util.SecurityUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -27,6 +36,8 @@ public class TaskServiceImpl implements TaskService {
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private TaskManagementEventPublisher eventPublisher = TaskManagementEventPublisher.noOp();
+    private TaskManagementCacheCoordinator cacheCoordinator = TaskManagementCacheCoordinator.noOp();
 
     public TaskServiceImpl(TaskRepository taskRepository, ProjectRepository projectRepository, UserRepository userRepository) {
         this.taskRepository = taskRepository;
@@ -35,6 +46,10 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    @Cacheable(
+            cacheNames = TaskManagementCacheNames.TASK_LIST,
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()"
+    )
     public List<Task> getAllTasks() {
         if (SecurityUtils.hasAnyRole("ADMIN", "PROJECT_MANAGER", "TEAM_LEADER")) {
             return taskRepository.findAllByDeletedFalseAndProjectDeletedFalseOrderByIdAsc();
@@ -49,6 +64,10 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    @Cacheable(
+            cacheNames = TaskManagementCacheNames.TASK_DETAILS,
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)"
+    )
     public Task findById(@NonNull Long id) {
         Long requiredId = requireId(id, "Task id");
         if (SecurityUtils.hasAnyRole("ADMIN", "PROJECT_MANAGER", "TEAM_LEADER")) {
@@ -76,7 +95,16 @@ public class TaskServiceImpl implements TaskService {
         task.setState(TaskState.BACKLOG);
         task.setReason(null);
         task.setDeleted(false);
-        return taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);
+        Task persistedTask = savedTask != null ? savedTask : task;
+        cacheCoordinator.evictWorkspaceCaches();
+        eventPublisher.publish(TaskManagementEvents.create(
+                TaskManagementEntityType.TASK,
+                persistedTask.getId(),
+                TaskManagementEventAction.CREATED,
+                "Created task " + persistedTask.getTitle()
+        ));
+        return persistedTask;
     }
 
     @Override
@@ -101,7 +129,16 @@ public class TaskServiceImpl implements TaskService {
             existingTask.setReason(null);
         }
 
-        return taskRepository.save(existingTask);
+        Task savedTask = taskRepository.save(existingTask);
+        Task persistedTask = savedTask != null ? savedTask : existingTask;
+        cacheCoordinator.evictWorkspaceCaches();
+        eventPublisher.publish(TaskManagementEvents.create(
+                TaskManagementEntityType.TASK,
+                persistedTask.getId(),
+                TaskManagementEventAction.UPDATED,
+                "Updated task " + persistedTask.getTitle()
+        ));
+        return persistedTask;
     }
 
     @Override
@@ -118,7 +155,30 @@ public class TaskServiceImpl implements TaskService {
 
         task.setState(TaskState.CANCELLED);
         task.setReason(reason.trim());
-        return taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);
+        Task persistedTask = savedTask != null ? savedTask : task;
+        cacheCoordinator.evictWorkspaceCaches();
+        eventPublisher.publish(TaskManagementEvents.create(
+                TaskManagementEntityType.TASK,
+                persistedTask.getId(),
+                TaskManagementEventAction.CANCELLED,
+                "Cancelled task " + persistedTask.getTitle()
+        ));
+        return persistedTask;
+    }
+
+    @Autowired(required = false)
+    public void setEventPublisher(TaskManagementEventPublisher eventPublisher) {
+        if (eventPublisher != null) {
+            this.eventPublisher = eventPublisher;
+        }
+    }
+
+    @Autowired
+    public void setCacheCoordinator(TaskManagementCacheCoordinator cacheCoordinator) {
+        if (cacheCoordinator != null) {
+            this.cacheCoordinator = cacheCoordinator;
+        }
     }
 
     private Project resolveProject(Long projectId) {

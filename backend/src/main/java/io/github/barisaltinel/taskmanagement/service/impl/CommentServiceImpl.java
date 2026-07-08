@@ -1,5 +1,7 @@
 package io.github.barisaltinel.taskmanagement.service.impl;
 
+import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheCoordinator;
+import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheNames;
 import io.github.barisaltinel.taskmanagement.model.Comment;
 import io.github.barisaltinel.taskmanagement.model.Task;
 import io.github.barisaltinel.taskmanagement.model.User;
@@ -11,7 +13,13 @@ import io.github.barisaltinel.taskmanagement.exception.AccessDeniedException;
 import io.github.barisaltinel.taskmanagement.exception.CommentNotFoundException;
 import io.github.barisaltinel.taskmanagement.exception.TaskNotFoundException;
 import io.github.barisaltinel.taskmanagement.exception.UserNotFoundException;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEntityType;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventAction;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventPublisher;
+import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEvents;
 import io.github.barisaltinel.taskmanagement.util.SecurityUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -26,6 +34,8 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
+    private TaskManagementEventPublisher eventPublisher = TaskManagementEventPublisher.noOp();
+    private TaskManagementCacheCoordinator cacheCoordinator = TaskManagementCacheCoordinator.noOp();
 
     public CommentServiceImpl(CommentRepository commentRepository, TaskRepository taskRepository, UserRepository userRepository) {
         this.commentRepository = commentRepository;
@@ -34,6 +44,10 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @Cacheable(
+            cacheNames = TaskManagementCacheNames.COMMENT_LIST,
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()"
+    )
     public List<Comment> getAllComments() {
         if (SecurityUtils.hasAnyRole("ADMIN", "PROJECT_MANAGER", "TEAM_LEADER")) {
             return commentRepository.findAllByTaskDeletedFalseAndTaskProjectDeletedFalseOrderByIdAsc();
@@ -49,6 +63,10 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @Cacheable(
+            cacheNames = TaskManagementCacheNames.COMMENT_DETAILS,
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)"
+    )
     public Comment findById(Long id) {
         Long requiredId = requireId(id, "Comment id");
 
@@ -93,7 +111,30 @@ public class CommentServiceImpl implements CommentService {
         newComment.setAuthor(author);
         newComment.setTask(task);
         newComment.setCreatedAt(LocalDateTime.now());
-        return commentRepository.save(newComment);
+        Comment savedComment = commentRepository.save(newComment);
+        Comment persistedComment = savedComment != null ? savedComment : newComment;
+        cacheCoordinator.evictWorkspaceCaches();
+        eventPublisher.publish(TaskManagementEvents.create(
+                TaskManagementEntityType.COMMENT,
+                persistedComment.getId(),
+                TaskManagementEventAction.CREATED,
+                "Added comment to task " + task.getTitle()
+        ));
+        return persistedComment;
+    }
+
+    @Autowired(required = false)
+    public void setEventPublisher(TaskManagementEventPublisher eventPublisher) {
+        if (eventPublisher != null) {
+            this.eventPublisher = eventPublisher;
+        }
+    }
+
+    @Autowired
+    public void setCacheCoordinator(TaskManagementCacheCoordinator cacheCoordinator) {
+        if (cacheCoordinator != null) {
+            this.cacheCoordinator = cacheCoordinator;
+        }
     }
 
     private boolean canAccessTask(Task task) {
