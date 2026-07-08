@@ -31,6 +31,10 @@ export default function Sidebar({ email, role, view, setView, views, metrics }) 
           <small>Done</small>
           <strong>{metrics.done}</strong>
         </div>
+        <div>
+          <small>Active Projects</small>
+          <strong>{metrics.activeProjects}</strong>
+        </div>
       </div>
     </aside>
   );

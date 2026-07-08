@@ -3,6 +3,7 @@ export default function CommentsView({
   setCommentForm,
   onCommentCreate,
   loading,
+  tasks,
   comments
 }) {
   return (
@@ -14,14 +15,21 @@ export default function CommentsView({
 
         <form className="stack-form" onSubmit={onCommentCreate}>
           <label>
-            Task ID
-            <input
-              type="number"
+            Task
+            <select
+              className="modern-select"
               value={commentForm.taskId}
               onChange={(event) =>
                 setCommentForm((prev) => ({ ...prev, taskId: event.target.value }))
               }
-            />
+            >
+              <option value="">Select task</option>
+              {tasks.map((task) => (
+                <option key={task.id} value={task.id}>
+                  {task.title} - {task.project?.title || "No project"}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label>
@@ -52,7 +60,10 @@ export default function CommentsView({
             <div className="list-row" key={comment.id}>
               <div>
                 <strong>{comment.author?.name || "Unknown User"}</strong>
-                <small>{comment.text}</small>
+                <small>
+                  {comment.text}
+                  {comment.taskId ? ` | Task #${comment.taskId}` : ""}
+                </small>
               </div>
               <span className="pill neutral">
                 {new Date(comment.createdAt).toLocaleDateString()}
