@@ -20,6 +20,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,6 +53,12 @@ public class Task {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TaskPriority priority;
+
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
+    @Column(name = "due_date")
+    private LocalDate dueDate;
 
     @ManyToOne
     @JoinColumn(name = "project_id")

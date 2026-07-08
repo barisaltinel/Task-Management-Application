@@ -17,12 +17,12 @@ import {
   saveSession
 } from "../shared/utils/session";
 import {
+  buildEmptyTaskForm,
   DEFAULT_VIEW,
   EMPTY_COMMENT_FORM,
   EMPTY_LOGIN_FORM,
   EMPTY_PROJECT_FORM,
   EMPTY_REGISTER_FORM,
-  EMPTY_TASK_FORM,
   EMPTY_UPLOAD_FORM,
   EMPTY_WORKSPACE,
   getAvailableViews,
@@ -40,25 +40,15 @@ export default function App() {
 
   const [loginForm, setLoginForm] = useState(EMPTY_LOGIN_FORM);
   const [registerForm, setRegisterForm] = useState(EMPTY_REGISTER_FORM);
-  const [taskForm, setTaskForm] = useState(EMPTY_TASK_FORM);
+  const [taskForm, setTaskForm] = useState(buildEmptyTaskForm);
   const [projectForm, setProjectForm] = useState(EMPTY_PROJECT_FORM);
   const [uploadForm, setUploadForm] = useState(EMPTY_UPLOAD_FORM);
   const [commentForm, setCommentForm] = useState(EMPTY_COMMENT_FORM);
+
   const role = session?.user?.role || "";
   const availableViews = useMemo(
     () => getAvailableViews(role, canManageProjects),
     [role, canManageProjects]
-  );
-
-  const metrics = useMemo(
-    () => ({
-      total: workspace.tasks.length,
-      done: workspace.tasks.filter((task) => task.state === "COMPLETED").length,
-      blocked: workspace.tasks.filter((task) => task.state === "BLOCKED").length,
-      critical: workspace.tasks.filter((task) => task.priority === "CRITICAL").length,
-      activeProjects: workspace.projects.filter((project) => project.status === "IN_PROGRESS").length
-    }),
-    [workspace.projects, workspace.tasks]
   );
 
   const selectableUsers = useMemo(() => {
@@ -109,86 +99,139 @@ export default function App() {
     [workspace.projects, workspace.tasks]
   );
 
-  const overview = useMemo(
-    () => {
-      const openTasks = workspace.tasks.filter(
-        (task) => !["COMPLETED", "CANCELLED"].includes(task.state)
-      );
-      const atRiskTasks = workspace.tasks
-        .filter(
-          (task) =>
-            task.state === "BLOCKED" ||
-            (task.priority === "CRITICAL" && task.state !== "COMPLETED") ||
-            task.state === "CANCELLED"
-        )
-        .sort((left, right) => {
-          const leftWeight =
-            left.state === "BLOCKED" ? 3 : left.priority === "CRITICAL" ? 2 : 1;
-          const rightWeight =
-            right.state === "BLOCKED" ? 3 : right.priority === "CRITICAL" ? 2 : 1;
-          return rightWeight - leftWeight;
-        });
-      const completionRate = metrics.total ? Math.round((metrics.done / metrics.total) * 100) : 0;
-      const openWorkRate = metrics.total
-        ? Math.round((openTasks.length / metrics.total) * 100)
-        : 0;
-      const collaborationVolume = workspace.comments.length + workspace.attachments.length;
-      const teamLoad = selectableUsers
-        .map((user) => {
-          const assignedTasks = workspace.tasks.filter((task) => task.assignee?.id === user.id);
-          const activeCount = assignedTasks.filter(
-            (task) => !["COMPLETED", "CANCELLED"].includes(task.state)
-          ).length;
-
-          return {
-            id: user.id,
-            name: user.name,
-            role: user.role,
-            totalCount: assignedTasks.length,
-            activeCount,
-            blockedCount: assignedTasks.filter((task) => task.state === "BLOCKED").length,
-            criticalCount: assignedTasks.filter(
-              (task) => task.priority === "CRITICAL" && task.state !== "COMPLETED"
-            ).length
-          };
-        })
-        .filter((entry) => entry.totalCount > 0)
-        .sort((left, right) => right.activeCount - left.activeCount)
-        .slice(0, 5);
-      const recentComments = [...workspace.comments]
-        .sort(
-          (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
-        )
-        .slice(0, 4);
-      const recentFiles = [...workspace.attachments]
-        .sort(
-          (left, right) =>
-            new Date(right.uploadedAt).getTime() - new Date(left.uploadedAt).getTime()
-        )
-        .slice(0, 4);
-
-      let pulseLabel = "Building momentum";
-      if (completionRate >= 70 && metrics.blocked <= 1) {
-        pulseLabel = "Healthy delivery pace";
-      } else if (atRiskTasks.length >= 4 || metrics.blocked >= 3) {
-        pulseLabel = "Needs leadership attention";
-      }
-
-      return {
-        completionRate,
-        openWorkRate,
-        collaborationVolume,
-        atRiskTasks: atRiskTasks.slice(0, 5),
-        atRiskCount: atRiskTasks.length,
-        teamLoad,
-        recentComments,
-        recentFiles,
-        projectSnapshots: projectSnapshots.slice(0, 4),
-        pulseLabel
-      };
-    },
-    [metrics, projectSnapshots, selectableUsers, workspace.attachments, workspace.comments, workspace.tasks]
+  const metrics = useMemo(
+    () => ({
+      total: workspace.tasks.length,
+      done: workspace.tasks.filter((task) => task.state === "COMPLETED").length,
+      blocked: workspace.tasks.filter((task) => task.state === "BLOCKED").length,
+      critical: workspace.tasks.filter((task) => task.priority === "CRITICAL").length,
+      activeProjects: workspace.projects.filter((project) => project.status === "IN_PROGRESS").length
+    }),
+    [workspace.projects, workspace.tasks]
   );
+
+  const overview = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const openTasks = workspace.tasks.filter(
+      (task) => !["COMPLETED", "CANCELLED"].includes(task.state)
+    );
+    const scheduledOpenTasks = openTasks
+      .filter((task) => task.dueDate)
+      .sort(
+        (left, right) =>
+          new Date(`${left.dueDate}T00:00:00`).getTime() -
+          new Date(`${right.dueDate}T00:00:00`).getTime()
+      );
+    const overdueTasks = scheduledOpenTasks.filter(
+      (task) => new Date(`${task.dueDate}T00:00:00`).getTime() < today.getTime()
+    );
+    const dueThisWeekCount = scheduledOpenTasks.filter((task) => {
+      const dueTime = new Date(`${task.dueDate}T00:00:00`).getTime();
+      const diffInDays = Math.round((dueTime - today.getTime()) / 86400000);
+      return diffInDays >= 0 && diffInDays <= 7;
+    }).length;
+    const atRiskTasks = workspace.tasks
+      .filter((task) => {
+        if (task.state === "BLOCKED" || task.state === "CANCELLED") {
+          return true;
+        }
+
+        if (task.priority === "CRITICAL" && task.state !== "COMPLETED") {
+          return true;
+        }
+
+        if (!task.dueDate || ["COMPLETED", "CANCELLED"].includes(task.state)) {
+          return false;
+        }
+
+        return new Date(`${task.dueDate}T00:00:00`).getTime() < today.getTime();
+      })
+      .sort((left, right) => {
+        const resolveWeight = (task) => {
+          if (task.state === "BLOCKED") {
+            return 4;
+          }
+          if (
+            task.dueDate &&
+            !["COMPLETED", "CANCELLED"].includes(task.state) &&
+            new Date(`${task.dueDate}T00:00:00`).getTime() < today.getTime()
+          ) {
+            return 3;
+          }
+          if (task.priority === "CRITICAL" && task.state !== "COMPLETED") {
+            return 2;
+          }
+          return 1;
+        };
+
+        return resolveWeight(right) - resolveWeight(left);
+      });
+    const completionRate = metrics.total ? Math.round((metrics.done / metrics.total) * 100) : 0;
+    const openWorkRate = metrics.total
+      ? Math.round((openTasks.length / metrics.total) * 100)
+      : 0;
+    const collaborationVolume = workspace.comments.length + workspace.attachments.length;
+    const teamLoad = selectableUsers
+      .map((user) => {
+        const assignedTasks = workspace.tasks.filter((task) => task.assignee?.id === user.id);
+        const activeCount = assignedTasks.filter(
+          (task) => !["COMPLETED", "CANCELLED"].includes(task.state)
+        ).length;
+
+        return {
+          id: user.id,
+          name: user.name,
+          role: user.role,
+          totalCount: assignedTasks.length,
+          activeCount,
+          blockedCount: assignedTasks.filter((task) => task.state === "BLOCKED").length,
+          criticalCount: assignedTasks.filter(
+            (task) => task.priority === "CRITICAL" && task.state !== "COMPLETED"
+          ).length
+        };
+      })
+      .filter((entry) => entry.totalCount > 0)
+      .sort((left, right) => right.activeCount - left.activeCount)
+      .slice(0, 5);
+    const recentComments = [...workspace.comments]
+      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+      .slice(0, 4);
+    const recentFiles = [...workspace.attachments]
+      .sort((left, right) => new Date(right.uploadedAt).getTime() - new Date(left.uploadedAt).getTime())
+      .slice(0, 4);
+
+    let pulseLabel = "Building momentum";
+    if (completionRate >= 70 && metrics.blocked <= 1 && overdueTasks.length === 0) {
+      pulseLabel = "Healthy delivery pace";
+    } else if (overdueTasks.length >= 2 || atRiskTasks.length >= 4 || metrics.blocked >= 3) {
+      pulseLabel = "Needs leadership attention";
+    }
+
+    return {
+      completionRate,
+      openWorkRate,
+      collaborationVolume,
+      atRiskTasks: atRiskTasks.slice(0, 5),
+      atRiskCount: atRiskTasks.length,
+      overdueCount: overdueTasks.length,
+      dueThisWeekCount,
+      upcomingDeadlines: scheduledOpenTasks.slice(0, 6),
+      teamLoad,
+      recentComments,
+      recentFiles,
+      projectSnapshots: projectSnapshots.slice(0, 4),
+      pulseLabel
+    };
+  }, [
+    metrics,
+    projectSnapshots,
+    selectableUsers,
+    workspace.attachments,
+    workspace.comments,
+    workspace.tasks
+  ]);
 
   function showNotice(nextNotice) {
     setNotice((currentNotice) => ({
@@ -354,22 +397,26 @@ export default function App() {
           description: taskForm.description.trim(),
           priority: taskForm.priority,
           state: taskForm.state,
+          startDate: taskForm.startDate || null,
+          dueDate: taskForm.dueDate || null,
           projectId: taskForm.projectId ? Number(taskForm.projectId) : null,
           assigneeId: taskForm.assigneeId ? Number(taskForm.assigneeId) : null
         }
       });
-      setTaskForm(EMPTY_TASK_FORM);
+      setTaskForm(buildEmptyTaskForm());
       const synced = await loadWorkspace(session.token);
       if (!synced) {
-        return;
+        return false;
       }
       showNotice({
         type: "success",
         title: "Task created",
         text: "Your task was added successfully."
       });
+      return true;
     } catch (error) {
       handleProtectedError(error, "Task creation failed.");
+      return false;
     } finally {
       setLoading(false);
     }
@@ -386,6 +433,8 @@ export default function App() {
           description: task.description,
           state: nextState,
           priority: task.priority,
+          startDate: task.startDate || null,
+          dueDate: task.dueDate || null,
           projectId: task.project?.id || null,
           assigneeId: task.assignee?.id || null
         }

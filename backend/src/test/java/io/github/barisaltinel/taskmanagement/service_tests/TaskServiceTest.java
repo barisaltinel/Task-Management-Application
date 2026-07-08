@@ -25,6 +25,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -62,6 +63,8 @@ class TaskServiceTest {
         mockTask.setDescription("This is a test task");
         mockTask.setState(TaskState.BACKLOG);
         mockTask.setPriority(TaskPriority.MEDIUM);
+        mockTask.setStartDate(LocalDate.now());
+        mockTask.setDueDate(LocalDate.now().plusDays(5));
 
         mockProject = new Project();
         mockProject.setId(10L);
@@ -151,6 +154,18 @@ class TaskServiceTest {
         Task canceledTask = taskService.cancel(1L, "No longer needed");
         assertThat(canceledTask.getState()).isEqualTo(TaskState.CANCELLED);
         assertThat(canceledTask.getReason()).isEqualTo("No longer needed");
+    }
+
+    @Test
+    void shouldRejectScheduleWhenDueDateIsBeforeStartDate() {
+        mockTask.setStartDate(LocalDate.now().plusDays(3));
+        mockTask.setDueDate(LocalDate.now().plusDays(1));
+        when(projectRepository.findByIdAndDeletedFalse(10L)).thenReturn(Optional.of(mockProject));
+        when(userRepository.findByIdAndDeletedFalse(20L)).thenReturn(Optional.of(mockUser));
+
+        assertThatThrownBy(() -> taskService.create(mockTask, 10L, 20L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Due date cannot be earlier than start date");
     }
 
     @Test

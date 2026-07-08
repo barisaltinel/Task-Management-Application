@@ -1,4 +1,4 @@
-import { humanize } from "../../shared/utils/format";
+import { formatDateLabel, formatRelativeDeadline, humanize } from "../../shared/utils/format";
 
 export default function OverviewView({ metrics, overview }) {
   return (
@@ -24,8 +24,12 @@ export default function OverviewView({ metrics, overview }) {
             <strong>{metrics.activeProjects}</strong>
           </div>
           <div className="hero-metric">
-            <small>Collaboration</small>
-            <strong>{overview.collaborationVolume}</strong>
+            <small>Due This Week</small>
+            <strong>{overview.dueThisWeekCount}</strong>
+          </div>
+          <div className="hero-metric">
+            <small>Overdue</small>
+            <strong>{overview.overdueCount}</strong>
           </div>
         </div>
       </article>
@@ -96,7 +100,7 @@ export default function OverviewView({ metrics, overview }) {
                     {task.project?.title || "Unassigned project"} | {humanize(task.state)}
                   </small>
                 </div>
-                <span className={`pill state-${task.state.toLowerCase()}`}>
+                <span className={`pill priority-${task.priority.toLowerCase()}`}>
                   {humanize(task.priority)}
                 </span>
               </div>
@@ -129,6 +133,35 @@ export default function OverviewView({ metrics, overview }) {
             ))}
 
             {!overview.teamLoad.length && <p className="muted">No assignment data yet.</p>}
+          </div>
+        </article>
+
+        <article className="panel-card">
+          <header>
+            <h3>Delivery Timeline</h3>
+            <span>{overview.upcomingDeadlines.length} scheduled items</span>
+          </header>
+
+          <div className="list-stack">
+            {overview.upcomingDeadlines.map((task) => (
+              <div className="timeline-row" key={task.id}>
+                <div>
+                  <strong>{task.title}</strong>
+                  <small>
+                    {task.project?.title || "Unassigned project"} |{" "}
+                    {task.assignee?.name || "No assignee"}
+                  </small>
+                </div>
+                <div className="timeline-row__meta">
+                  <span className="pill neutral">{formatDateLabel(task.dueDate)}</span>
+                  <small>{formatRelativeDeadline(task.dueDate)}</small>
+                </div>
+              </div>
+            ))}
+
+            {!overview.upcomingDeadlines.length && (
+              <p className="muted">No scheduled deadlines yet.</p>
+            )}
           </div>
         </article>
 

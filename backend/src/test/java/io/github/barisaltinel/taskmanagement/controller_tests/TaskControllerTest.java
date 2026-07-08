@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.test.context.support.WithMockUser;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,6 +41,9 @@ class TaskControllerTest {
         mockTask.setTitle("Test Task");
         mockTask.setDescription("This is a test task");
         mockTask.setState(TaskState.BACKLOG);
+        mockTask.setPriority(TaskPriority.MEDIUM);
+        mockTask.setStartDate(LocalDate.now());
+        mockTask.setDueDate(LocalDate.now().plusDays(4));
     }
 
     @Test
@@ -77,6 +81,8 @@ class TaskControllerTest {
                 "This is a test task",
                 TaskPriority.MEDIUM,
                 TaskState.BACKLOG,
+                LocalDate.now(),
+                LocalDate.now().plusDays(7),
                 10L,
                 20L
         );
@@ -94,6 +100,8 @@ class TaskControllerTest {
                 "This is a test task",
                 TaskPriority.MEDIUM,
                 TaskState.IN_PROGRESS,
+                LocalDate.now(),
+                LocalDate.now().plusDays(10),
                 10L,
                 20L
         );

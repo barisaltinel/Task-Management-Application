@@ -23,6 +23,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDate;
 import java.util.Objects;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -76,6 +77,8 @@ class TaskIntegrationTest {
         task.setDescription("This is a test task");
         task.setState(TaskState.BACKLOG);
         task.setPriority(TaskPriority.MEDIUM);
+        task.setStartDate(LocalDate.now());
+        task.setDueDate(LocalDate.now().plusDays(5));
         task.setProject(project);
         task.setAssignee(assignee);
         task = requireTask(taskRepository.save(task), "Saved task is required");
@@ -89,6 +92,8 @@ class TaskIntegrationTest {
                 "Integration Test",
                 TaskPriority.HIGH,
                 TaskState.IN_PROGRESS,
+                LocalDate.now(),
+                LocalDate.now().plusDays(9),
                 project.getId(),
                 assignee.getId()
         );

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { TASK_PRIORITIES, TASK_STATES } from "../../app/config";
-import { humanize } from "../../shared/utils/format";
+import {
+  formatDateLabel,
+  formatRelativeDeadline,
+  humanize
+} from "../../shared/utils/format";
 
 export default function TasksView({
   taskForm,
@@ -19,16 +23,19 @@ export default function TasksView({
   const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [projectFilter, setProjectFilter] = useState("ALL");
   const [assigneeFilter, setAssigneeFilter] = useState("ALL");
+  const [dueStatusFilter, setDueStatusFilter] = useState("ALL");
   const [focusMode, setFocusMode] = useState(false);
 
   const filteredTasks = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     return tasks.filter((task) => {
       const matchesQuery =
         !query ||
         task.title.toLowerCase().includes(query) ||
-        task.description.toLowerCase().includes(query) ||
+        (task.description || "").toLowerCase().includes(query) ||
         (task.project?.title || "").toLowerCase().includes(query) ||
         (task.assignee?.name || "").toLowerCase().includes(query);
       const matchesState = stateFilter === "ALL" || task.state === stateFilter;
@@ -37,9 +44,26 @@ export default function TasksView({
         projectFilter === "ALL" || String(task.project?.id || "") === projectFilter;
       const matchesAssignee =
         assigneeFilter === "ALL" || String(task.assignee?.id || "") === assigneeFilter;
+      const dueTime = task.dueDate ? new Date(`${task.dueDate}T00:00:00`).getTime() : null;
+      const dueDiff =
+        dueTime === null ? null : Math.round((dueTime - today.getTime()) / 86400000);
+      const matchesDueStatus =
+        dueStatusFilter === "ALL" ||
+        (dueStatusFilter === "OVERDUE" &&
+          dueDiff !== null &&
+          dueDiff < 0 &&
+          !["COMPLETED", "CANCELLED"].includes(task.state)) ||
+        (dueStatusFilter === "THIS_WEEK" &&
+          dueDiff !== null &&
+          dueDiff >= 0 &&
+          dueDiff <= 7 &&
+          !["COMPLETED", "CANCELLED"].includes(task.state)) ||
+        (dueStatusFilter === "SCHEDULED" && !!task.dueDate) ||
+        (dueStatusFilter === "NO_DEADLINE" && !task.dueDate);
       const matchesFocus =
         !focusMode ||
         task.state === "BLOCKED" ||
+        (dueDiff !== null && dueDiff < 0 && !["COMPLETED", "CANCELLED"].includes(task.state)) ||
         (task.priority === "CRITICAL" && task.state !== "COMPLETED") ||
         task.state === "CANCELLED";
 
@@ -49,10 +73,20 @@ export default function TasksView({
         matchesPriority &&
         matchesProject &&
         matchesAssignee &&
+        matchesDueStatus &&
         matchesFocus
       );
     });
-  }, [assigneeFilter, focusMode, priorityFilter, projectFilter, searchTerm, stateFilter, tasks]);
+  }, [
+    assigneeFilter,
+    dueStatusFilter,
+    focusMode,
+    priorityFilter,
+    projectFilter,
+    searchTerm,
+    stateFilter,
+    tasks
+  ]);
 
   const board = useMemo(
     () =>
@@ -63,27 +97,59 @@ export default function TasksView({
     [filteredTasks]
   );
 
-  const flaggedTasks = useMemo(
+  const scheduledTasks = useMemo(
     () =>
-      filteredTasks.filter(
-        (task) =>
-          task.state === "BLOCKED" ||
-          (task.priority === "CRITICAL" && task.state !== "COMPLETED") ||
-          task.state === "CANCELLED"
-      ),
+      filteredTasks
+        .filter((task) => task.dueDate)
+        .sort(
+          (left, right) =>
+            new Date(`${left.dueDate}T00:00:00`).getTime() -
+            new Date(`${right.dueDate}T00:00:00`).getTime()
+        )
+        .slice(0, 6),
     [filteredTasks]
   );
 
+  const flaggedTasks = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return filteredTasks.filter((task) => {
+      if (task.state === "BLOCKED" || task.state === "CANCELLED") {
+        return true;
+      }
+
+      if (task.priority === "CRITICAL" && task.state !== "COMPLETED") {
+        return true;
+      }
+
+      if (!task.dueDate || ["COMPLETED", "CANCELLED"].includes(task.state)) {
+        return false;
+      }
+
+      return new Date(`${task.dueDate}T00:00:00`).getTime() < today.getTime();
+    });
+  }, [filteredTasks]);
+
   useEffect(() => {
     if (!isCreateModalOpen) return undefined;
+
     const onEscape = (event) => {
       if (event.key === "Escape") {
         setIsCreateModalOpen(false);
       }
     };
+
     window.addEventListener("keydown", onEscape);
     return () => window.removeEventListener("keydown", onEscape);
   }, [isCreateModalOpen]);
+
+  async function handleSubmit(event) {
+    const created = await onTaskCreate(event);
+    if (created) {
+      setIsCreateModalOpen(false);
+    }
+  }
 
   return (
     <section className="tasks-view reveal">
@@ -173,13 +239,55 @@ export default function TasksView({
               <option value="ALL">All assignees</option>
               {users.map((user) => (
                 <option key={user.id} value={user.id}>
-                  {user.name}
+                  {user.name} ({humanize(user.role)})
                 </option>
               ))}
             </select>
           </label>
+
+          <label className="toolbar-field">
+            Deadline
+            <select
+              className="modern-select"
+              value={dueStatusFilter}
+              onChange={(event) => setDueStatusFilter(event.target.value)}
+            >
+              <option value="ALL">All deadlines</option>
+              <option value="OVERDUE">Overdue</option>
+              <option value="THIS_WEEK">Due this week</option>
+              <option value="SCHEDULED">Scheduled</option>
+              <option value="NO_DEADLINE">No deadline</option>
+            </select>
+          </label>
         </div>
       </article>
+
+      {!!scheduledTasks.length && (
+        <article className="panel-card task-timeline">
+          <header>
+            <h3>Roadmap Timeline</h3>
+            <span>Next scheduled commitments</span>
+          </header>
+
+          <div className="timeline-list">
+            {scheduledTasks.map((task) => (
+              <div className="timeline-row" key={task.id}>
+                <div>
+                  <strong>{task.title}</strong>
+                  <small>
+                    {task.startDate ? formatDateLabel(task.startDate) : "No start date"} to{" "}
+                    {formatDateLabel(task.dueDate)}
+                  </small>
+                </div>
+                <div className="timeline-row__meta">
+                  <span className="pill neutral">{formatRelativeDeadline(task.dueDate)}</span>
+                  <small>{task.project?.title || "No project"}</small>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+      )}
 
       {!!flaggedTasks.length && (
         <article className="panel-card task-alerts">
@@ -198,6 +306,9 @@ export default function TasksView({
                   <span className={`pill priority-${task.priority.toLowerCase()}`}>
                     {humanize(task.priority)}
                   </span>
+                  {task.dueDate && (
+                    <span className="pill neutral">{formatRelativeDeadline(task.dueDate)}</span>
+                  )}
                 </div>
                 <strong>{task.title}</strong>
                 <p>{task.project?.title || "No project"} | {task.assignee?.name || "No assignee"}</p>
@@ -240,6 +351,18 @@ export default function TasksView({
                     <span className="pill neutral">{task.project?.title || "No project"}</span>
                     <span className="pill neutral">{task.assignee?.name || "No assignee"}</span>
                   </div>
+
+                  {(task.startDate || task.dueDate) && (
+                    <div className="deadline-stack">
+                      <small>
+                        Start: {task.startDate ? formatDateLabel(task.startDate) : "Not set"}
+                      </small>
+                      <small>
+                        Due: {task.dueDate ? formatDateLabel(task.dueDate) : "No deadline"}
+                      </small>
+                      {task.dueDate && <small>{formatRelativeDeadline(task.dueDate)}</small>}
+                    </div>
+                  )}
 
                   {task.reason && <small className="task-note">Reason: {task.reason}</small>}
 
@@ -298,7 +421,7 @@ export default function TasksView({
               </button>
             </header>
 
-            <form className="stack-form stack-form--task" onSubmit={onTaskCreate}>
+            <form className="stack-form stack-form--task" onSubmit={handleSubmit}>
               <label>
                 Title
                 <input
@@ -358,7 +481,31 @@ export default function TasksView({
 
               <div className="form-grid">
                 <label>
-                  Project ID
+                  Start Date
+                  <input
+                    type="date"
+                    value={taskForm.startDate}
+                    onChange={(event) =>
+                      setTaskForm((prev) => ({ ...prev, startDate: event.target.value }))
+                    }
+                  />
+                </label>
+
+                <label>
+                  Due Date
+                  <input
+                    type="date"
+                    value={taskForm.dueDate}
+                    onChange={(event) =>
+                      setTaskForm((prev) => ({ ...prev, dueDate: event.target.value }))
+                    }
+                  />
+                </label>
+              </div>
+
+              <div className="form-grid">
+                <label>
+                  Project
                   <select
                     className="modern-select"
                     value={taskForm.projectId}
