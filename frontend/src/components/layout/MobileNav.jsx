@@ -1,10 +1,9 @@
-import { VIEWS } from "../../app/config";
 import { humanize } from "../../shared/utils/format";
 
-export default function MobileNav({ view, setView }) {
+export default function MobileNav({ view, setView, views }) {
   return (
     <div className="mobile-nav">
-      {VIEWS.map((item) => (
+      {views.map((item) => (
         <button
           key={item}
           className={view === item ? "active" : ""}
