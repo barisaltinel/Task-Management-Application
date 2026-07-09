@@ -4,6 +4,29 @@ Task Management Application is a full-stack workspace app built with Spring Boot
 
 The goal is simple: keep projects, tasks, comments, files, and team accountability in one place without turning the experience into a heavy enterprise tool.
 
+## GitHub About And Topics
+
+Suggested GitHub About text:
+
+`Production-minded full-stack task management app with Spring Boot, React, role-based access, OpenAPI docs, CI quality gates, and Docker support.`
+
+Suggested repository topics:
+
+- `spring-boot`
+- `react`
+- `vite`
+- `mysql`
+- `task-management`
+- `project-management`
+- `openapi`
+- `swagger`
+- `docker`
+- `rabbitmq`
+- `redis`
+- `rest-api`
+- `ci-cd`
+- `jacoco`
+- `portfolio-project`
 ## What The Product Covers
 
 - Authentication with role-based access
@@ -93,7 +116,7 @@ flowchart LR
     U[User] --> F[React Frontend\nVite App]
     F -->|HTTP /api| B[Spring Boot Backend]
     B --> D[Swagger UI / OpenAPI Docs]
-    B --> S[Spring Security + JWT Session Flow]
+    B --> S[Spring Security + Opaque Bearer Session Flow]
     B --> DB[(MySQL)]
     B --> R[(Redis Cache)]
     B --> MQ[(RabbitMQ Events)]
@@ -493,4 +516,6 @@ Files involved in the container setup:
 - `docker-compose.yml`
 - `backend/Dockerfile`
 - `frontend/Dockerfile`
+
+
 
