@@ -60,6 +60,12 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Run frontend tests
+        run: npm run test
+
       - name: Build frontend
         run: npm run build
 
@@ -72,3 +78,4 @@ jobs:
 
       - name: Validate compose configuration
         run: docker compose config
+
