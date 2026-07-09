@@ -211,7 +211,7 @@ GitHub Actions is wired for a free-account-friendly baseline:
 
 The CI workflow runs on pushes to `main`, pull requests targeting `main`, and manual dispatches.
 
-The frontend does not have an automated test script yet, so the workflow validates that side by running a production build.
+The frontend is validated with lint, automated tests, and a production build in CI.
 
 The container publish workflow runs when you push a version tag such as `v1.0.0`, and it can also be triggered manually from the Actions tab.
 
@@ -332,4 +332,5 @@ This repository now presents well as:
 - a portfolio-grade full-stack task management product
 - a bootcamp capstone evolved into a more production-minded workspace
 - a base for adding deeper product-management features such as task dependencies, automations, forms, and audit trails
+
 

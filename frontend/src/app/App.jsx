@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import TopHeader from '../components/layout/TopHeader';
 import MobileNav from '../components/layout/MobileNav';
@@ -267,51 +267,55 @@ export default function App() {
     workspace.tasks,
   ]);
 
-  function showNotice(nextNotice) {
+  const showNotice = useCallback((nextNotice) => {
     setNotice((currentNotice) => ({
       title: '',
       ...currentNotice,
       ...nextNotice,
     }));
-  }
+  }, []);
 
-  function dismissNotice() {
+  const dismissNotice = useCallback(() => {
     setNotice({ type: '', text: '', title: '' });
-  }
+  }, []);
 
-  function clearActiveSession(
-    message = 'Your session has expired. Please sign in again.'
-  ) {
-    clearSession();
-    setSession(null);
-    setWorkspace(EMPTY_WORKSPACE);
-    setCanManageProjects(false);
-    setView(DEFAULT_VIEW);
-    setAuthMode('login');
-    showNotice({
-      type: 'info',
-      title: 'Session ended',
-      text: message,
-    });
-  }
+  const clearActiveSession = useCallback(
+    (message = 'Your session has expired. Please sign in again.') => {
+      clearSession();
+      setSession(null);
+      setWorkspace(EMPTY_WORKSPACE);
+      setCanManageProjects(false);
+      setView(DEFAULT_VIEW);
+      setAuthMode('login');
+      showNotice({
+        type: 'info',
+        title: 'Session ended',
+        text: message,
+      });
+    },
+    [showNotice]
+  );
 
-  function handleProtectedError(error, fallbackMessage) {
-    if (error?.status === 401) {
-      clearActiveSession(
-        error.message || 'Your session ended. Sign in again to continue.'
-      );
-      return true;
-    }
+  const handleProtectedError = useCallback(
+    (error, fallbackMessage) => {
+      if (error?.status === 401) {
+        clearActiveSession(
+          error.message || 'Your session ended. Sign in again to continue.'
+        );
+        return true;
+      }
 
-    showNotice({
-      type: 'error',
-      title: 'Request failed',
-      text: error?.message || fallbackMessage,
-    });
-    return false;
-  }
+      showNotice({
+        type: 'error',
+        title: 'Request failed',
+        text: error?.message || fallbackMessage,
+      });
+      return false;
+    },
+    [clearActiveSession, showNotice]
+  );
 
-  async function loadWorkspace(token, showSyncNotice = false) {
+  const loadWorkspace = useCallback(async (token, showSyncNotice = false) => {
     setLoading(true);
     const [tasks, projects, attachments, comments] = await Promise.allSettled([
       apiRequest('/tasks', { token }),
@@ -345,7 +349,7 @@ export default function App() {
 
     setLoading(false);
     return true;
-  }
+  }, [handleProtectedError, showNotice]);
 
   async function handleLogin(event) {
     event.preventDefault();
@@ -574,7 +578,7 @@ export default function App() {
     if (session?.token) {
       loadWorkspace(session.token);
     }
-  }, [session?.token]);
+  }, [loadWorkspace, session?.token]);
 
   useEffect(() => {
     if (!availableViews.includes(view)) {
@@ -592,7 +596,7 @@ export default function App() {
     }, 4200);
 
     return () => window.clearTimeout(timeoutId);
-  }, [notice]);
+  }, [dismissNotice, notice]);
 
   if (!session?.token) {
     return (
@@ -688,3 +692,7 @@ export default function App() {
     </div>
   );
 }
+
+
+
+
