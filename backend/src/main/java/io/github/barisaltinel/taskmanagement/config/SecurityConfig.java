@@ -79,6 +79,8 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers(HttpMethod.GET, "/", "/api", "/api/public/app-info").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui", "/swagger-ui.html", "/swagger-ui/**")
+                            .permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll();
 
@@ -94,9 +96,12 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.DELETE, "/api/projects/**").hasRole("ADMIN");
                     auth.requestMatchers(HttpMethod.POST, "/api/tasks/**").hasAnyRole("PROJECT_MANAGER", "ADMIN");
                     auth.requestMatchers(HttpMethod.PUT, "/api/tasks/**").hasAnyRole("PROJECT_MANAGER", "TEAM_LEADER", "ADMIN");
-                    auth.requestMatchers(HttpMethod.PATCH, "/api/tasks/**").hasAnyRole("TEAM_MEMBER", "TEAM_LEADER", "PROJECT_MANAGER", "ADMIN");
-                    auth.requestMatchers(HttpMethod.POST, "/api/attachments/**").hasAnyRole("TEAM_MEMBER", "TEAM_LEADER", "PROJECT_MANAGER", "ADMIN");
-                    auth.requestMatchers(HttpMethod.DELETE, "/api/attachments/**").hasAnyRole("TEAM_MEMBER", "TEAM_LEADER", "PROJECT_MANAGER", "ADMIN");
+                    auth.requestMatchers(HttpMethod.PATCH, "/api/tasks/**")
+                            .hasAnyRole("TEAM_MEMBER", "TEAM_LEADER", "PROJECT_MANAGER", "ADMIN");
+                    auth.requestMatchers(HttpMethod.POST, "/api/attachments/**")
+                            .hasAnyRole("TEAM_MEMBER", "TEAM_LEADER", "PROJECT_MANAGER", "ADMIN");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/attachments/**")
+                            .hasAnyRole("TEAM_MEMBER", "TEAM_LEADER", "PROJECT_MANAGER", "ADMIN");
                     auth.requestMatchers(HttpMethod.GET, "/api/users/**").authenticated();
                     auth.requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN");
                     auth.requestMatchers(HttpMethod.PUT, "/api/users/**").authenticated();
