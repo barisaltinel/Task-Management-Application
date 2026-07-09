@@ -1,23 +1,19 @@
 package io.github.barisaltinel.taskmanagement.service;
 
-import io.github.barisaltinel.taskmanagement.model.User;
 import io.github.barisaltinel.taskmanagement.exception.UserNotFoundException;
-
+import io.github.barisaltinel.taskmanagement.model.User;
 import java.util.List;
 
 public interface UserService {
-    List<User> getAllUsers();
+  List<User> getAllUsers();
 
-    User findById(Long id) throws UserNotFoundException;
+  User findById(Long id) throws UserNotFoundException;
 
-    User create(User user);
+  User create(User user);
 
-    User register(User user);
+  User register(User user);
 
-    User update(Long id, User user) throws UserNotFoundException;
+  User update(Long id, User user) throws UserNotFoundException;
 
-    void softDelete(Long id) throws UserNotFoundException;
+  void softDelete(Long id) throws UserNotFoundException;
 }
-
-
-

@@ -1,7 +1,7 @@
 const TITLES = {
   success: "Success",
   error: "Attention",
-  info: "Notice"
+  info: "Notice",
 };
 
 export default function Notice({ notice, onDismiss }) {

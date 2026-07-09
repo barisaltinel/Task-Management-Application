@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"*.{json,html}\" \".prettierrc.json\"",
+    "check-format": "prettier --check \"src/**/*.{js,jsx,css}\" \"*.{json,html}\" \".prettierrc.json\"",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -14,6 +16,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
+    "prettier": "^3.6.2",
     "vite": "^5.4.8"
   }
 }

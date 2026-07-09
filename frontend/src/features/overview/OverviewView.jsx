@@ -8,9 +8,8 @@ export default function OverviewView({ metrics, overview }) {
           <span className="eyebrow">Executive Snapshot</span>
           <h3>{overview.pulseLabel}</h3>
           <p>
-            {overview.completionRate}% of the visible work is complete, with{" "}
-            {overview.atRiskCount} item{overview.atRiskCount === 1 ? "" : "s"} currently
-            needing attention.
+            {overview.completionRate}% of the visible work is complete, with {overview.atRiskCount}{" "}
+            item{overview.atRiskCount === 1 ? "" : "s"} currently needing attention.
           </p>
         </div>
 
@@ -147,9 +146,7 @@ export default function OverviewView({ metrics, overview }) {
                   <small>{comment.text}</small>
                 </div>
               ))}
-              {!overview.recentComments.length && (
-                <p className="muted">No comment activity yet.</p>
-              )}
+              {!overview.recentComments.length && <p className="muted">No comment activity yet.</p>}
             </div>
 
             <div className="list-stack">

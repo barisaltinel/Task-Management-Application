@@ -11,7 +11,7 @@ export default function AuthView({
   onLogin,
   onRegister,
   notice,
-  onDismissNotice
+  onDismissNotice,
 }) {
   const isLogin = authMode === "login";
 
@@ -23,8 +23,8 @@ export default function AuthView({
           <p className="auth-eyebrow">Team work, without the rough edges</p>
           <h1>Start your workspace with a calmer first step.</h1>
           <p className="auth-lead">
-            Bring tasks, project status, files, and discussion into one focused
-            flow from the moment your team signs in.
+            Bring tasks, project status, files, and discussion into one focused flow from the moment
+            your team signs in.
           </p>
 
           <div className="auth-highlights" aria-label="TaskPulse highlights">
@@ -126,11 +126,7 @@ export default function AuthView({
             </label>
 
             <button className="primary-btn" disabled={loading} type="submit">
-              {loading
-                ? "Please wait..."
-                : isLogin
-                  ? "Open Workspace"
-                  : "Create Account"}
+              {loading ? "Please wait..." : isLogin ? "Open Workspace" : "Create Account"}
             </button>
           </form>
 

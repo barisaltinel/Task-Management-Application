@@ -8,7 +8,7 @@ export default function ProjectsView({
   canManageProjects,
   loading,
   projects,
-  projectSnapshots
+  projectSnapshots,
 }) {
   return (
     <section className="split-view">
@@ -51,7 +51,7 @@ export default function ProjectsView({
                 onChange={(event) =>
                   setProjectForm((prev) => ({
                     ...prev,
-                    departmentName: event.target.value
+                    departmentName: event.target.value,
                   }))
                 }
               />
@@ -103,16 +103,14 @@ export default function ProjectsView({
                   <span style={{ width: `${project.completionRate}%` }} />
                 </div>
                 <small>
-                  {project.completionRate}% complete | {project.taskCount} tasks | {project.teamCount}{" "}
-                  teammates
+                  {project.completionRate}% complete | {project.taskCount} tasks |{" "}
+                  {project.teamCount} teammates
                 </small>
               </div>
             </div>
           ))}
 
-          {!projects.length && (
-            <p className="muted">No project access or no project found.</p>
-          )}
+          {!projects.length && <p className="muted">No project access or no project found.</p>}
         </div>
       </article>
     </section>

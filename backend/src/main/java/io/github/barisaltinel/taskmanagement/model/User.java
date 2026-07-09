@@ -10,14 +10,13 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -28,42 +27,40 @@ import java.time.LocalDateTime;
 @Table(name = "users")
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @NotBlank(message = "Name cannot be empty")
-    @Column(nullable = false)
-    private String name;
+  @NotBlank(message = "Name cannot be empty")
+  @Column(nullable = false)
+  private String name;
 
-    @Email(message = "Email should be valid")
-    @NotBlank(message = "Email cannot be empty")
-    @Column(nullable = false, unique = true)
-    private String email;
+  @Email(message = "Email should be valid")
+  @NotBlank(message = "Email cannot be empty")
+  @Column(nullable = false, unique = true)
+  private String email;
 
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    @Column(name = "password_hash", nullable = false)
-    private String password;
+  @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+  @Column(name = "password_hash", nullable = false)
+  private String password;
 
-    @NotBlank(message = "Role cannot be empty")
-    @Column(nullable = false)
-    private String role;
+  @NotBlank(message = "Role cannot be empty")
+  @Column(nullable = false)
+  private String role;
 
-    @Default
-    @Column(nullable = false)
-    private boolean deleted = false;
+  @Default
+  @Column(nullable = false)
+  private boolean deleted = false;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+  @Column(nullable = false, updatable = false)
+  private LocalDateTime createdAt;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
+  @PrePersist
+  protected void onCreate() {
+    this.createdAt = LocalDateTime.now();
+  }
 
-    public void softDelete() {
-        this.deleted = true;
-    }
+  public void softDelete() {
+    this.deleted = true;
+  }
 }
-
-

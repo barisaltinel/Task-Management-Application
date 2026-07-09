@@ -4,7 +4,7 @@ export default function FilesView({
   onUpload,
   loading,
   tasks,
-  attachments
+  attachments,
 }) {
   return (
     <section className="split-view">
@@ -39,7 +39,7 @@ export default function FilesView({
               onChange={(event) =>
                 setUploadForm((prev) => ({
                   ...prev,
-                  file: event.target.files?.[0] || null
+                  file: event.target.files?.[0] || null,
                 }))
               }
             />

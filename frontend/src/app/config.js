@@ -8,7 +8,7 @@ export const TASK_STATES = [
   "IN_PROGRESS",
   "BLOCKED",
   "CANCELLED",
-  "COMPLETED"
+  "COMPLETED",
 ];
 
 export const TASK_PRIORITIES = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
@@ -18,7 +18,7 @@ export const EMPTY_WORKSPACE = {
   tasks: [],
   projects: [],
   attachments: [],
-  comments: []
+  comments: [],
 };
 
 export const EMPTY_LOGIN_FORM = { email: "", password: "" };
@@ -29,13 +29,13 @@ export const EMPTY_TASK_FORM = {
   priority: "MEDIUM",
   state: "BACKLOG",
   projectId: "",
-  assigneeId: ""
+  assigneeId: "",
 };
 export const EMPTY_PROJECT_FORM = {
   title: "",
   description: "",
   departmentName: "",
-  status: "IN_PROGRESS"
+  status: "IN_PROGRESS",
 };
 export const EMPTY_UPLOAD_FORM = { taskId: "", file: null };
 export const EMPTY_COMMENT_FORM = { taskId: "", text: "" };

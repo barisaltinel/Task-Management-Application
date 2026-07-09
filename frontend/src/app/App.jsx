@@ -10,12 +10,7 @@ import ProjectsView from "../features/projects/ProjectsView";
 import FilesView from "../features/files/FilesView";
 import CommentsView from "../features/comments/CommentsView";
 import { apiRequest } from "../shared/api/client";
-import {
-  clearSession,
-  createSession,
-  readSession,
-  saveSession
-} from "../shared/utils/session";
+import { clearSession, createSession, readSession, saveSession } from "../shared/utils/session";
 import {
   DEFAULT_VIEW,
   EMPTY_COMMENT_FORM,
@@ -26,7 +21,7 @@ import {
   EMPTY_UPLOAD_FORM,
   EMPTY_WORKSPACE,
   getAvailableViews,
-  getDefaultViewForRole
+  getDefaultViewForRole,
 } from "./config";
 
 export default function App() {
@@ -47,7 +42,7 @@ export default function App() {
   const role = session?.user?.role || "";
   const availableViews = useMemo(
     () => getAvailableViews(role, canManageProjects),
-    [role, canManageProjects]
+    [role, canManageProjects],
   );
 
   const metrics = useMemo(
@@ -56,9 +51,10 @@ export default function App() {
       done: workspace.tasks.filter((task) => task.state === "COMPLETED").length,
       blocked: workspace.tasks.filter((task) => task.state === "BLOCKED").length,
       critical: workspace.tasks.filter((task) => task.priority === "CRITICAL").length,
-      activeProjects: workspace.projects.filter((project) => project.status === "IN_PROGRESS").length
+      activeProjects: workspace.projects.filter((project) => project.status === "IN_PROGRESS")
+        .length,
     }),
-    [workspace.projects, workspace.tasks]
+    [workspace.projects, workspace.tasks],
   );
 
   const selectableUsers = useMemo(() => {
@@ -78,7 +74,7 @@ export default function App() {
     workspace.tasks.forEach((task) => registerUser(task.assignee));
 
     return Array.from(usersById.values()).sort((left, right) =>
-      (left.name || "").localeCompare(right.name || "", undefined, { sensitivity: "base" })
+      (left.name || "").localeCompare(right.name || "", undefined, { sensitivity: "base" }),
     );
   }, [workspace.projects, workspace.tasks]);
 
@@ -90,7 +86,7 @@ export default function App() {
           const completedCount = projectTasks.filter((task) => task.state === "COMPLETED").length;
           const blockedCount = projectTasks.filter((task) => task.state === "BLOCKED").length;
           const criticalCount = projectTasks.filter(
-            (task) => task.priority === "CRITICAL" && task.state !== "COMPLETED"
+            (task) => task.priority === "CRITICAL" && task.state !== "COMPLETED",
           ).length;
 
           return {
@@ -102,99 +98,98 @@ export default function App() {
             teamCount: project.teamMembers?.length || 0,
             completionRate: projectTasks.length
               ? Math.round((completedCount / projectTasks.length) * 100)
-              : 0
+              : 0,
           };
         })
         .sort((left, right) => right.taskCount - left.taskCount),
-    [workspace.projects, workspace.tasks]
+    [workspace.projects, workspace.tasks],
   );
 
-  const overview = useMemo(
-    () => {
-      const openTasks = workspace.tasks.filter(
-        (task) => !["COMPLETED", "CANCELLED"].includes(task.state)
-      );
-      const atRiskTasks = workspace.tasks
-        .filter(
-          (task) =>
-            task.state === "BLOCKED" ||
-            (task.priority === "CRITICAL" && task.state !== "COMPLETED") ||
-            task.state === "CANCELLED"
-        )
-        .sort((left, right) => {
-          const leftWeight =
-            left.state === "BLOCKED" ? 3 : left.priority === "CRITICAL" ? 2 : 1;
-          const rightWeight =
-            right.state === "BLOCKED" ? 3 : right.priority === "CRITICAL" ? 2 : 1;
-          return rightWeight - leftWeight;
-        });
-      const completionRate = metrics.total ? Math.round((metrics.done / metrics.total) * 100) : 0;
-      const openWorkRate = metrics.total
-        ? Math.round((openTasks.length / metrics.total) * 100)
-        : 0;
-      const collaborationVolume = workspace.comments.length + workspace.attachments.length;
-      const teamLoad = selectableUsers
-        .map((user) => {
-          const assignedTasks = workspace.tasks.filter((task) => task.assignee?.id === user.id);
-          const activeCount = assignedTasks.filter(
-            (task) => !["COMPLETED", "CANCELLED"].includes(task.state)
-          ).length;
+  const overview = useMemo(() => {
+    const openTasks = workspace.tasks.filter(
+      (task) => !["COMPLETED", "CANCELLED"].includes(task.state),
+    );
+    const atRiskTasks = workspace.tasks
+      .filter(
+        (task) =>
+          task.state === "BLOCKED" ||
+          (task.priority === "CRITICAL" && task.state !== "COMPLETED") ||
+          task.state === "CANCELLED",
+      )
+      .sort((left, right) => {
+        const leftWeight = left.state === "BLOCKED" ? 3 : left.priority === "CRITICAL" ? 2 : 1;
+        const rightWeight = right.state === "BLOCKED" ? 3 : right.priority === "CRITICAL" ? 2 : 1;
+        return rightWeight - leftWeight;
+      });
+    const completionRate = metrics.total ? Math.round((metrics.done / metrics.total) * 100) : 0;
+    const openWorkRate = metrics.total ? Math.round((openTasks.length / metrics.total) * 100) : 0;
+    const collaborationVolume = workspace.comments.length + workspace.attachments.length;
+    const teamLoad = selectableUsers
+      .map((user) => {
+        const assignedTasks = workspace.tasks.filter((task) => task.assignee?.id === user.id);
+        const activeCount = assignedTasks.filter(
+          (task) => !["COMPLETED", "CANCELLED"].includes(task.state),
+        ).length;
 
-          return {
-            id: user.id,
-            name: user.name,
-            role: user.role,
-            totalCount: assignedTasks.length,
-            activeCount,
-            blockedCount: assignedTasks.filter((task) => task.state === "BLOCKED").length,
-            criticalCount: assignedTasks.filter(
-              (task) => task.priority === "CRITICAL" && task.state !== "COMPLETED"
-            ).length
-          };
-        })
-        .filter((entry) => entry.totalCount > 0)
-        .sort((left, right) => right.activeCount - left.activeCount)
-        .slice(0, 5);
-      const recentComments = [...workspace.comments]
-        .sort(
-          (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
-        )
-        .slice(0, 4);
-      const recentFiles = [...workspace.attachments]
-        .sort(
-          (left, right) =>
-            new Date(right.uploadedAt).getTime() - new Date(left.uploadedAt).getTime()
-        )
-        .slice(0, 4);
+        return {
+          id: user.id,
+          name: user.name,
+          role: user.role,
+          totalCount: assignedTasks.length,
+          activeCount,
+          blockedCount: assignedTasks.filter((task) => task.state === "BLOCKED").length,
+          criticalCount: assignedTasks.filter(
+            (task) => task.priority === "CRITICAL" && task.state !== "COMPLETED",
+          ).length,
+        };
+      })
+      .filter((entry) => entry.totalCount > 0)
+      .sort((left, right) => right.activeCount - left.activeCount)
+      .slice(0, 5);
+    const recentComments = [...workspace.comments]
+      .sort(
+        (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+      )
+      .slice(0, 4);
+    const recentFiles = [...workspace.attachments]
+      .sort(
+        (left, right) => new Date(right.uploadedAt).getTime() - new Date(left.uploadedAt).getTime(),
+      )
+      .slice(0, 4);
 
-      let pulseLabel = "Building momentum";
-      if (completionRate >= 70 && metrics.blocked <= 1) {
-        pulseLabel = "Healthy delivery pace";
-      } else if (atRiskTasks.length >= 4 || metrics.blocked >= 3) {
-        pulseLabel = "Needs leadership attention";
-      }
+    let pulseLabel = "Building momentum";
+    if (completionRate >= 70 && metrics.blocked <= 1) {
+      pulseLabel = "Healthy delivery pace";
+    } else if (atRiskTasks.length >= 4 || metrics.blocked >= 3) {
+      pulseLabel = "Needs leadership attention";
+    }
 
-      return {
-        completionRate,
-        openWorkRate,
-        collaborationVolume,
-        atRiskTasks: atRiskTasks.slice(0, 5),
-        atRiskCount: atRiskTasks.length,
-        teamLoad,
-        recentComments,
-        recentFiles,
-        projectSnapshots: projectSnapshots.slice(0, 4),
-        pulseLabel
-      };
-    },
-    [metrics, projectSnapshots, selectableUsers, workspace.attachments, workspace.comments, workspace.tasks]
-  );
+    return {
+      completionRate,
+      openWorkRate,
+      collaborationVolume,
+      atRiskTasks: atRiskTasks.slice(0, 5),
+      atRiskCount: atRiskTasks.length,
+      teamLoad,
+      recentComments,
+      recentFiles,
+      projectSnapshots: projectSnapshots.slice(0, 4),
+      pulseLabel,
+    };
+  }, [
+    metrics,
+    projectSnapshots,
+    selectableUsers,
+    workspace.attachments,
+    workspace.comments,
+    workspace.tasks,
+  ]);
 
   function showNotice(nextNotice) {
     setNotice((currentNotice) => ({
       title: "",
       ...currentNotice,
-      ...nextNotice
+      ...nextNotice,
     }));
   }
 
@@ -212,22 +207,20 @@ export default function App() {
     showNotice({
       type: "info",
       title: "Session ended",
-      text: message
+      text: message,
     });
   }
 
   function handleProtectedError(error, fallbackMessage) {
     if (error?.status === 401) {
-      clearActiveSession(
-        error.message || "Your session ended. Sign in again to continue."
-      );
+      clearActiveSession(error.message || "Your session ended. Sign in again to continue.");
       return true;
     }
 
     showNotice({
       type: "error",
       title: "Request failed",
-      text: error?.message || fallbackMessage
+      text: error?.message || fallbackMessage,
     });
     return false;
   }
@@ -238,7 +231,7 @@ export default function App() {
       apiRequest("/tasks", { token }),
       apiRequest("/projects", { token }),
       apiRequest("/attachments", { token }),
-      apiRequest("/comments", { token })
+      apiRequest("/comments", { token }),
     ]);
 
     if (tasks.status === "rejected") {
@@ -251,7 +244,7 @@ export default function App() {
       tasks: tasks.value || [],
       projects: projects.status === "fulfilled" ? projects.value || [] : [],
       attachments: attachments.status === "fulfilled" ? attachments.value || [] : [],
-      comments: comments.status === "fulfilled" ? comments.value || [] : []
+      comments: comments.status === "fulfilled" ? comments.value || [] : [],
     });
 
     setCanManageProjects(projects.status === "fulfilled");
@@ -259,7 +252,7 @@ export default function App() {
       showNotice({
         type: "success",
         title: "Workspace updated",
-        text: "Data synchronized."
+        text: "Data synchronized.",
       });
     }
 
@@ -273,7 +266,7 @@ export default function App() {
       setLoading(true);
       const authPayload = await apiRequest("/auth/login", {
         method: "POST",
-        body: loginForm
+        body: loginForm,
       });
       const nextSession = createSession(authPayload, loginForm.email);
       saveSession(nextSession);
@@ -283,13 +276,13 @@ export default function App() {
       showNotice({
         type: "success",
         title: "Signed in",
-        text: "Welcome back. Your workspace is syncing now."
+        text: "Welcome back. Your workspace is syncing now.",
       });
     } catch (error) {
       showNotice({
         type: "error",
         title: "Sign-in failed",
-        text: error.message || "Sign in failed."
+        text: error.message || "Sign in failed.",
       });
     } finally {
       setLoading(false);
@@ -302,20 +295,20 @@ export default function App() {
       setLoading(true);
       await apiRequest("/auth/register", {
         method: "POST",
-        body: registerForm
+        body: registerForm,
       });
       setAuthMode("login");
       setRegisterForm(EMPTY_REGISTER_FORM);
       showNotice({
         type: "success",
         title: "Account created",
-        text: "Please sign in to open your workspace."
+        text: "Please sign in to open your workspace.",
       });
     } catch (error) {
       showNotice({
         type: "error",
         title: "Registration failed",
-        text: error.message || "Registration failed."
+        text: error.message || "Registration failed.",
       });
     } finally {
       setLoading(false);
@@ -326,7 +319,7 @@ export default function App() {
     if (session?.token) {
       apiRequest("/auth/logout", {
         method: "POST",
-        token: session.token
+        token: session.token,
       }).catch(() => {});
     }
     clearSession();
@@ -338,7 +331,7 @@ export default function App() {
     showNotice({
       type: "info",
       title: "Signed out",
-      text: "You have signed out of this tab."
+      text: "You have signed out of this tab.",
     });
   }
 
@@ -355,8 +348,8 @@ export default function App() {
           priority: taskForm.priority,
           state: taskForm.state,
           projectId: taskForm.projectId ? Number(taskForm.projectId) : null,
-          assigneeId: taskForm.assigneeId ? Number(taskForm.assigneeId) : null
-        }
+          assigneeId: taskForm.assigneeId ? Number(taskForm.assigneeId) : null,
+        },
       });
       setTaskForm(EMPTY_TASK_FORM);
       const synced = await loadWorkspace(session.token);
@@ -366,7 +359,7 @@ export default function App() {
       showNotice({
         type: "success",
         title: "Task created",
-        text: "Your task was added successfully."
+        text: "Your task was added successfully.",
       });
     } catch (error) {
       handleProtectedError(error, "Task creation failed.");
@@ -387,8 +380,8 @@ export default function App() {
           state: nextState,
           priority: task.priority,
           projectId: task.project?.id || null,
-          assigneeId: task.assignee?.id || null
-        }
+          assigneeId: task.assignee?.id || null,
+        },
       });
       await loadWorkspace(session.token);
     } catch (error) {
@@ -405,7 +398,7 @@ export default function App() {
       setLoading(true);
       await apiRequest(`/tasks/${taskId}/cancel?reason=${encodeURIComponent(reason)}`, {
         method: "PUT",
-        token: session.token
+        token: session.token,
       });
       await loadWorkspace(session.token);
     } catch (error) {
@@ -422,7 +415,7 @@ export default function App() {
       await apiRequest("/projects", {
         method: "POST",
         token: session.token,
-        body: projectForm
+        body: projectForm,
       });
       setProjectForm(EMPTY_PROJECT_FORM);
       await loadWorkspace(session.token);
@@ -447,7 +440,7 @@ export default function App() {
         method: "POST",
         token: session.token,
         body: formData,
-        isFormData: true
+        isFormData: true,
       });
       setUploadForm(EMPTY_UPLOAD_FORM);
       await loadWorkspace(session.token);
@@ -469,8 +462,8 @@ export default function App() {
         token: session.token,
         body: {
           text: commentForm.text.trim(),
-          taskId: Number(commentForm.taskId)
-        }
+          taskId: Number(commentForm.taskId),
+        },
       });
       setCommentForm(EMPTY_COMMENT_FORM);
       await loadWorkspace(session.token);

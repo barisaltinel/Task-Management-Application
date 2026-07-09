@@ -4,7 +4,7 @@ export default function CommentsView({
   onCommentCreate,
   loading,
   tasks,
-  comments
+  comments,
 }) {
   return (
     <section className="split-view">

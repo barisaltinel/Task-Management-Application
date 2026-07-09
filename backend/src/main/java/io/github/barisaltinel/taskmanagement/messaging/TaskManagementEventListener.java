@@ -9,20 +9,19 @@ import org.springframework.stereotype.Component;
 @Component
 @ConditionalOnProperty(prefix = "app.rabbitmq", name = "enabled", havingValue = "true")
 public class TaskManagementEventListener {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TaskManagementEventListener.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TaskManagementEventListener.class);
 
-    @RabbitListener(queues = "${app.rabbitmq.queue}")
-    public void handle(TaskManagementEvent event) {
-        if (event == null) {
-            return;
-        }
-
-        LOGGER.info(
-                "Processed domain event {} {}#{} by {}",
-                event.getAction(),
-                event.getEntityType(),
-                event.getEntityId(),
-                event.getActor()
-        );
+  @RabbitListener(queues = "${app.rabbitmq.queue}")
+  public void handle(TaskManagementEvent event) {
+    if (event == null) {
+      return;
     }
+
+    LOGGER.info(
+        "Processed domain event {} {}#{} by {}",
+        event.getAction(),
+        event.getEntityType(),
+        event.getEntityId(),
+        event.getActor());
+  }
 }

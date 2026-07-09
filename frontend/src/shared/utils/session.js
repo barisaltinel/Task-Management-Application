@@ -16,14 +16,12 @@ function clearLegacySession() {
 function normalizeUser(source = {}, fallbackEmail = "") {
   const email = source.email || fallbackEmail || "";
   const name =
-    source.name ||
-    [source.firstName, source.lastName].filter(Boolean).join(" ").trim() ||
-    email;
+    source.name || [source.firstName, source.lastName].filter(Boolean).join(" ").trim() || email;
 
   return {
     ...source,
     email,
-    name
+    name,
   };
 }
 
@@ -47,7 +45,7 @@ function normalizeStoredSession(session) {
     token,
     user,
     email: user.email,
-    name: user.name
+    name: user.name,
   };
 }
 
@@ -58,7 +56,7 @@ export function createSession(authPayload, fallbackEmail = "") {
     payload?.token,
     payload?.accessToken,
     payload?.bearerToken,
-    payload?.access_token
+    payload?.access_token,
   ].find((value) => typeof value === "string" && value.trim());
 
   if (!token) {
@@ -75,7 +73,7 @@ export function createSession(authPayload, fallbackEmail = "") {
 
   return normalizeStoredSession({
     token,
-    user
+    user,
   });
 }
 

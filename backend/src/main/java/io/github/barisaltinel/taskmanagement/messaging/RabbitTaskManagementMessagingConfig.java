@@ -21,50 +21,45 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties(RabbitMessagingProperties.class)
 public class RabbitTaskManagementMessagingConfig {
 
-    @Bean
-    public TopicExchange taskManagementExchange(RabbitMessagingProperties properties) {
-        return new TopicExchange(properties.getExchange(), true, false);
-    }
+  @Bean
+  public TopicExchange taskManagementExchange(RabbitMessagingProperties properties) {
+    return new TopicExchange(properties.getExchange(), true, false);
+  }
 
-    @Bean
-    public Queue taskManagementQueue(RabbitMessagingProperties properties) {
-        return new Queue(properties.getQueue(), true);
-    }
+  @Bean
+  public Queue taskManagementQueue(RabbitMessagingProperties properties) {
+    return new Queue(properties.getQueue(), true);
+  }
 
-    @Bean
-    public Binding taskManagementBinding(
-            Queue taskManagementQueue,
-            TopicExchange taskManagementExchange,
-            RabbitMessagingProperties properties
-    ) {
-        return BindingBuilder.bind(taskManagementQueue)
-                .to(taskManagementExchange)
-                .with(properties.getRoutingKey());
-    }
+  @Bean
+  public Binding taskManagementBinding(
+      Queue taskManagementQueue,
+      TopicExchange taskManagementExchange,
+      RabbitMessagingProperties properties) {
+    return BindingBuilder.bind(taskManagementQueue)
+        .to(taskManagementExchange)
+        .with(properties.getRoutingKey());
+  }
 
-    @Bean
-    public Jackson2JsonMessageConverter rabbitMessageConverter(ObjectMapper objectMapper) {
-        return new Jackson2JsonMessageConverter(objectMapper);
-    }
+  @Bean
+  public Jackson2JsonMessageConverter rabbitMessageConverter(ObjectMapper objectMapper) {
+    return new Jackson2JsonMessageConverter(objectMapper);
+  }
 
-    @Bean
-    public RabbitTemplate rabbitTemplate(
-            ConnectionFactory connectionFactory,
-            Jackson2JsonMessageConverter rabbitMessageConverter
-    ) {
-        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-        rabbitTemplate.setMessageConverter(rabbitMessageConverter);
-        return rabbitTemplate;
-    }
+  @Bean
+  public RabbitTemplate rabbitTemplate(
+      ConnectionFactory connectionFactory, Jackson2JsonMessageConverter rabbitMessageConverter) {
+    RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+    rabbitTemplate.setMessageConverter(rabbitMessageConverter);
+    return rabbitTemplate;
+  }
 
-    @Bean
-    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
-            ConnectionFactory connectionFactory,
-            Jackson2JsonMessageConverter rabbitMessageConverter
-    ) {
-        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
-        factory.setConnectionFactory(connectionFactory);
-        factory.setMessageConverter(rabbitMessageConverter);
-        return factory;
-    }
+  @Bean
+  public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
+      ConnectionFactory connectionFactory, Jackson2JsonMessageConverter rabbitMessageConverter) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(rabbitMessageConverter);
+    return factory;
+  }
 }

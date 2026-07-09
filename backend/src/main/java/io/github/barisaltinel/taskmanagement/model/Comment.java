@@ -9,12 +9,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -23,24 +22,22 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Table(name = "comments")
 public class Comment {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(nullable = false, length = 1000)
-    private String text;
+  @Column(nullable = false, length = 1000)
+  private String text;
 
-    @ManyToOne
-    @JoinColumn(name = "author_id", nullable = false)
-    private User author;
+  @ManyToOne
+  @JoinColumn(name = "author_id", nullable = false)
+  private User author;
 
-    @JsonIgnore
-    @ManyToOne
-    @JoinColumn(name = "task_id", nullable = false)
-    private Task task;
+  @JsonIgnore
+  @ManyToOne
+  @JoinColumn(name = "task_id", nullable = false)
+  private Task task;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+  @Column(nullable = false, updatable = false)
+  private LocalDateTime createdAt = LocalDateTime.now();
 }
-
-

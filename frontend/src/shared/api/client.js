@@ -37,7 +37,7 @@ function normalizeErrorPayload(payload) {
 
 export async function apiRequest(
   path,
-  { method = "GET", token = "", body = null, isFormData = false } = {}
+  { method = "GET", token = "", body = null, isFormData = false } = {},
 ) {
   const headers = {};
   if (token) {
@@ -50,18 +50,14 @@ export async function apiRequest(
   const response = await fetch(`${API_BASE}${path}`, {
     method,
     headers,
-    body: body
-      ? isFormData
-        ? body
-        : JSON.stringify(body)
-      : null
+    body: body ? (isFormData ? body : JSON.stringify(body)) : null,
   });
 
   const payload = await parseResponse(response);
   if (!response.ok) {
     throw new ApiError(normalizeErrorPayload(payload), {
       status: response.status,
-      payload
+      payload,
     });
   }
 

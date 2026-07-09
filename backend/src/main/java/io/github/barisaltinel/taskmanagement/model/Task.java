@@ -15,13 +15,12 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Getter
@@ -31,49 +30,47 @@ import java.util.List;
 @Table(name = "tasks")
 public class Task {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @NotBlank(message = "Title cannot be empty")
-    @Column(nullable = false)
-    private String title;
+  @NotBlank(message = "Title cannot be empty")
+  @Column(nullable = false)
+  private String title;
 
-    @NotBlank(message = "Description cannot be empty")
-    @Column(nullable = false, length = 1000)
-    private String description;
+  @NotBlank(message = "Description cannot be empty")
+  @Column(nullable = false, length = 1000)
+  private String description;
 
-    @NotNull(message = "Task state is required")
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TaskState state;
+  @NotNull(message = "Task state is required")
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private TaskState state;
 
-    @NotNull(message = "Priority is required")
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TaskPriority priority;
+  @NotNull(message = "Priority is required")
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private TaskPriority priority;
 
-    @ManyToOne
-    @JoinColumn(name = "project_id")
-    private Project project;
+  @ManyToOne
+  @JoinColumn(name = "project_id")
+  private Project project;
 
-    @ManyToOne
-    @JoinColumn(name = "assignee_id")
-    private User assignee;
+  @ManyToOne
+  @JoinColumn(name = "assignee_id")
+  private User assignee;
 
-    @Column(name = "reason")
-    private String reason;
+  @Column(name = "reason")
+  private String reason;
 
-    @Column(nullable = false)
-    private boolean deleted = false;
+  @Column(nullable = false)
+  private boolean deleted = false;
 
-    @JsonIgnore
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Attachment> attachments = new ArrayList<>();
+  @JsonIgnore
+  @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Attachment> attachments = new ArrayList<>();
 
-    @JsonIgnore
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Comment> comments = new ArrayList<>();
+  @JsonIgnore
+  @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Comment> comments = new ArrayList<>();
 }
-
-

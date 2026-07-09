@@ -11,7 +11,7 @@ export default function TasksView({
   projects,
   users,
   onTaskStateChange,
-  onTaskCancel
+  onTaskCancel,
 }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -58,9 +58,9 @@ export default function TasksView({
     () =>
       TASK_STATES.map((state) => ({
         state,
-        tasks: filteredTasks.filter((task) => task.state === state)
+        tasks: filteredTasks.filter((task) => task.state === state),
       })),
-    [filteredTasks]
+    [filteredTasks],
   );
 
   const flaggedTasks = useMemo(
@@ -69,9 +69,9 @@ export default function TasksView({
         (task) =>
           task.state === "BLOCKED" ||
           (task.priority === "CRITICAL" && task.state !== "COMPLETED") ||
-          task.state === "CANCELLED"
+          task.state === "CANCELLED",
       ),
-    [filteredTasks]
+    [filteredTasks],
   );
 
   useEffect(() => {
@@ -200,7 +200,9 @@ export default function TasksView({
                   </span>
                 </div>
                 <strong>{task.title}</strong>
-                <p>{task.project?.title || "No project"} | {task.assignee?.name || "No assignee"}</p>
+                <p>
+                  {task.project?.title || "No project"} | {task.assignee?.name || "No assignee"}
+                </p>
               </div>
             ))}
           </div>
