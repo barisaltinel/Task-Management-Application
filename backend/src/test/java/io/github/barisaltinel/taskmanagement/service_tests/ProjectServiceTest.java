@@ -1,11 +1,21 @@
 package io.github.barisaltinel.taskmanagement.service_tests;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import io.github.barisaltinel.taskmanagement.exception.ProjectNotFoundException;
 import io.github.barisaltinel.taskmanagement.model.Project;
 import io.github.barisaltinel.taskmanagement.model.ProjectStatus;
-import io.github.barisaltinel.taskmanagement.repository.UserRepository;
 import io.github.barisaltinel.taskmanagement.repository.ProjectRepository;
-import io.github.barisaltinel.taskmanagement.exception.ProjectNotFoundException;
+import io.github.barisaltinel.taskmanagement.repository.UserRepository;
 import io.github.barisaltinel.taskmanagement.service.impl.ProjectServiceImpl;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,17 +24,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectServiceTest {
@@ -76,7 +75,8 @@ class ProjectServiceTest {
 
     @Test
     void shouldCreateProject() {
-        when(projectRepository.save(anyProject())).thenReturn(requireProject(mockProject, "mockProject must not be null"));
+        when(projectRepository.save(anyProject()))
+                .thenReturn(requireProject(mockProject, "mockProject must not be null"));
         Project project = projectService.create(mockProject, List.of());
         assertThat(project).isEqualTo(mockProject);
     }
@@ -84,7 +84,8 @@ class ProjectServiceTest {
     @Test
     void shouldUpdateProject() {
         when(projectRepository.findByIdAndDeletedFalse(1L)).thenReturn(Optional.of(mockProject));
-        when(projectRepository.save(anyProject())).thenReturn(requireProject(mockProject, "mockProject must not be null"));
+        when(projectRepository.save(anyProject()))
+                .thenReturn(requireProject(mockProject, "mockProject must not be null"));
         Project updatedProject = projectService.update(1L, mockProject, List.of());
         assertThat(updatedProject).isEqualTo(mockProject);
     }
@@ -105,6 +106,3 @@ class ProjectServiceTest {
         return any(Project.class);
     }
 }
-
-
-

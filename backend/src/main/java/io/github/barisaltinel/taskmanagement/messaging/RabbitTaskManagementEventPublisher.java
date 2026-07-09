@@ -23,11 +23,8 @@ public class RabbitTaskManagementEventPublisher implements TaskManagementEventPu
             return;
         }
 
-        Runnable sender = () -> rabbitTemplate.convertAndSend(
-                properties.getExchange(),
-                properties.getRoutingKey(),
-                event
-        );
+        Runnable sender =
+                () -> rabbitTemplate.convertAndSend(properties.getExchange(), properties.getRoutingKey(), event);
 
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

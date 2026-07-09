@@ -37,8 +37,11 @@ jobs:
       - name: Make Maven wrapper executable
         run: chmod +x mvnw
 
-      - name: Run backend test suite
-        run: ./mvnw -q test
+      - name: Check backend formatting
+        run: ./mvnw -q spotless:check
+
+      - name: Run backend verification and coverage gate
+        run: ./mvnw -q verify
 
   frontend-build:
     name: Frontend Build
@@ -78,4 +81,3 @@ jobs:
 
       - name: Validate compose configuration
         run: docker compose config
-

@@ -12,15 +12,12 @@ public interface TaskManagementCacheCoordinator {
     final class NoOpTaskManagementCacheCoordinator implements TaskManagementCacheCoordinator {
         private static final NoOpTaskManagementCacheCoordinator INSTANCE = new NoOpTaskManagementCacheCoordinator();
 
-        private NoOpTaskManagementCacheCoordinator() {
-        }
+        private NoOpTaskManagementCacheCoordinator() {}
 
         @Override
-        public void evictWorkspaceCaches() {
-        }
+        public void evictWorkspaceCaches() {}
 
         @Override
-        public void evictUserCaches() {
-        }
+        public void evictUserCaches() {}
     }
 }

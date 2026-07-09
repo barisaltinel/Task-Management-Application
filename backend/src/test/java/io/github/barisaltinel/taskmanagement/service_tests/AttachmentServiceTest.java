@@ -1,5 +1,12 @@
 package io.github.barisaltinel.taskmanagement.service_tests;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import io.github.barisaltinel.taskmanagement.exception.AttachmentNotFoundException;
 import io.github.barisaltinel.taskmanagement.model.Attachment;
 import io.github.barisaltinel.taskmanagement.model.Project;
 import io.github.barisaltinel.taskmanagement.model.ProjectStatus;
@@ -7,11 +14,14 @@ import io.github.barisaltinel.taskmanagement.model.Task;
 import io.github.barisaltinel.taskmanagement.model.User;
 import io.github.barisaltinel.taskmanagement.repository.AttachmentRepository;
 import io.github.barisaltinel.taskmanagement.repository.TaskRepository;
-import io.github.barisaltinel.taskmanagement.exception.AttachmentNotFoundException;
 import io.github.barisaltinel.taskmanagement.service.impl.AttachmentServiceImpl;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,17 +33,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AttachmentServiceTest {
@@ -84,13 +83,9 @@ class AttachmentServiceTest {
         mockAttachment.setTask(mockTask);
         mockAttachment.setDeleted(false);
 
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(
-                        "admin@example.com",
-                        "N/A",
-                        Set.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
-                )
-        );
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(
+                        "admin@example.com", "N/A", Set.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
     }
 
     @AfterEach
@@ -125,7 +120,8 @@ class AttachmentServiceTest {
     void shouldUploadAttachment() {
         MockMultipartFile file = new MockMultipartFile("file", "test.pdf", "application/pdf", new byte[1024]);
         when(taskRepository.findByIdAndDeletedFalseAndProjectDeletedFalse(1L)).thenReturn(Optional.of(mockTask));
-        when(attachmentRepository.save(anyAttachment())).thenReturn(requireAttachment(mockAttachment, "Mock attachment is required"));
+        when(attachmentRepository.save(anyAttachment()))
+                .thenReturn(requireAttachment(mockAttachment, "Mock attachment is required"));
 
         Attachment uploadedAttachment = attachmentService.upload(file, 1L);
 
@@ -149,7 +145,8 @@ class AttachmentServiceTest {
 
         when(attachmentRepository.findByIdAndDeletedFalseAndTaskDeletedFalseAndTaskProjectDeletedFalse(1L))
                 .thenReturn(Optional.of(mockAttachment));
-        when(attachmentRepository.save(anyAttachment())).thenReturn(requireAttachment(mockAttachment, "Mock attachment is required"));
+        when(attachmentRepository.save(anyAttachment()))
+                .thenReturn(requireAttachment(mockAttachment, "Mock attachment is required"));
 
         Attachment result = attachmentService.update(1L, updatedAttachment);
 
@@ -165,6 +162,3 @@ class AttachmentServiceTest {
         return any(Attachment.class);
     }
 }
-
-
-

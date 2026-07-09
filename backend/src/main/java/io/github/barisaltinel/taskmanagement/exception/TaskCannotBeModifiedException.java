@@ -5,6 +5,3 @@ public class TaskCannotBeModifiedException extends RuntimeException {
         super("Completed tasks cannot be modified!");
     }
 }
-
-
-

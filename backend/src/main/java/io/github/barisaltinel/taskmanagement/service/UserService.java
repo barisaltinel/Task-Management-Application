@@ -1,8 +1,7 @@
 package io.github.barisaltinel.taskmanagement.service;
 
-import io.github.barisaltinel.taskmanagement.model.User;
 import io.github.barisaltinel.taskmanagement.exception.UserNotFoundException;
-
+import io.github.barisaltinel.taskmanagement.model.User;
 import java.util.List;
 
 public interface UserService {
@@ -18,6 +17,3 @@ public interface UserService {
 
     void softDelete(Long id) throws UserNotFoundException;
 }
-
-
-

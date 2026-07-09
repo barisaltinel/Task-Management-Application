@@ -12,13 +12,12 @@ import io.github.barisaltinel.taskmanagement.model.User;
 import io.github.barisaltinel.taskmanagement.repository.ProjectRepository;
 import io.github.barisaltinel.taskmanagement.repository.UserRepository;
 import io.github.barisaltinel.taskmanagement.service.ProjectService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
 
 @Service
 public class ProjectServiceImpl implements ProjectService {
@@ -36,8 +35,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Cacheable(
             cacheNames = TaskManagementCacheNames.PROJECT_LIST,
-            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()"
-    )
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()")
     public List<Project> getAllProjects() {
         return projectRepository.findAllByDeletedFalseOrderByIdAsc();
     }
@@ -45,13 +43,11 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Cacheable(
             cacheNames = TaskManagementCacheNames.PROJECT_DETAILS,
-            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)"
-    )
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)")
     public Project findById(Long id) {
         Long requiredId = requireId(id, "Project id");
 
-        return projectRepository.findByIdAndDeletedFalse(requiredId)
-                .orElseThrow(ProjectNotFoundException::new);
+        return projectRepository.findByIdAndDeletedFalse(requiredId).orElseThrow(ProjectNotFoundException::new);
     }
 
     @Override
@@ -69,8 +65,7 @@ public class ProjectServiceImpl implements ProjectService {
                 TaskManagementEntityType.PROJECT,
                 persistedProject.getId(),
                 TaskManagementEventAction.CREATED,
-                "Created project " + persistedProject.getTitle()
-        ));
+                "Created project " + persistedProject.getTitle()));
         return persistedProject;
     }
 
@@ -93,8 +88,7 @@ public class ProjectServiceImpl implements ProjectService {
                 TaskManagementEntityType.PROJECT,
                 persistedProject.getId(),
                 TaskManagementEventAction.UPDATED,
-                "Updated project " + persistedProject.getTitle()
-        ));
+                "Updated project " + persistedProject.getTitle()));
         return persistedProject;
     }
 
@@ -109,8 +103,7 @@ public class ProjectServiceImpl implements ProjectService {
                 TaskManagementEntityType.PROJECT,
                 persistedProject.getId(),
                 TaskManagementEventAction.DELETED,
-                "Archived project " + persistedProject.getTitle()
-        ));
+                "Archived project " + persistedProject.getTitle()));
     }
 
     @Autowired(required = false)
@@ -143,6 +136,3 @@ public class ProjectServiceImpl implements ProjectService {
         return users;
     }
 }
-
-
-

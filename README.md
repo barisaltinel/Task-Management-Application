@@ -394,6 +394,15 @@ cd frontend
 npm run build
 ```
 
+Backend verification with coverage gate:
+
+```powershell
+cd backend
+mvn verify
+```
+
+This backend verify flow enforces a minimum 85% JaCoCo line coverage on the tracked backend application code.
+
 Backend package build:
 
 ```powershell
@@ -405,12 +414,14 @@ The backend test profile keeps RabbitMQ and Redis disabled so the test suite sta
 
 ## Code Style
 
-Backend formatting uses Spotless:
+Backend formatting uses Spotless with Palantir Java Format:
 
 ```powershell
 cd backend
 ./mvnw spotless:apply
 ```
+
+CI also enforces backend formatting with `./mvnw -q spotless:check`.
 
 Frontend formatting uses Prettier:
 
@@ -423,7 +434,7 @@ npm run format
 
 GitHub Actions is set up with a practical baseline for a portfolio project or a production-minded sample repository.
 
-- `/.github/workflows/ci.yml` runs backend tests, frontend lint, frontend tests, frontend build, and `docker compose config`
+- `/.github/workflows/ci.yml` runs backend formatting checks, backend verification with a minimum 85% JaCoCo coverage gate, frontend lint, frontend tests, frontend build, and `docker compose config`
 - `/.github/workflows/docker-publish.yml` builds and publishes backend and frontend container images to GitHub Container Registry
 
 The main CI workflow runs on:
@@ -461,31 +472,12 @@ $env:FRONTEND_PORT="13000"
 docker compose up --build
 ```
 
-Example with alternate ports for every service:
-
-```powershell
-$env:MYSQL_PORT="3307"
-$env:RABBITMQ_PORT="5673"
-$env:RABBITMQ_MANAGEMENT_PORT="15673"
-$env:REDIS_PORT="6380"
-$env:BACKEND_PORT="18080"
-$env:FRONTEND_PORT="13000"
-docker compose up --build
-```
-
-Default local endpoints:
+Local endpoints:
 
 - frontend UI: `http://localhost:3000`
 - backend API: `http://localhost:8080`
 - Swagger UI: `http://localhost:8080/swagger-ui`
 - RabbitMQ management UI: `http://localhost:15672`
-
-With the alternate port example above:
-
-- frontend UI: `http://localhost:13000`
-- backend API: `http://localhost:18080`
-- Swagger UI: `http://localhost:18080/swagger-ui`
-- RabbitMQ management UI: `http://localhost:15673`
 
 Inside Docker:
 
@@ -502,10 +494,3 @@ Files involved in the container setup:
 - `backend/Dockerfile`
 - `frontend/Dockerfile`
 
-## Positioning
-
-This repository works well as:
-
-- a portfolio-ready full-stack application
-- a bootcamp project pushed toward a more production-minded standard
-- a base for future additions such as task dependencies, audit trails, automations, and workflow rules

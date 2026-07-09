@@ -2,17 +2,17 @@ package io.github.barisaltinel.taskmanagement.controller;
 
 import io.github.barisaltinel.taskmanagement.dto.ApiDtos;
 import io.github.barisaltinel.taskmanagement.dto.ApiMapper;
-import io.github.barisaltinel.taskmanagement.model.Task;
-import io.github.barisaltinel.taskmanagement.service.TaskService;
 import io.github.barisaltinel.taskmanagement.exception.TaskCannotBeModifiedException;
 import io.github.barisaltinel.taskmanagement.exception.TaskNotFoundException;
+import io.github.barisaltinel.taskmanagement.model.Task;
+import io.github.barisaltinel.taskmanagement.service.TaskService;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -26,7 +26,9 @@ public class TaskController {
     @GetMapping
     @PreAuthorize("hasAnyRole('TEAM_MEMBER', 'TEAM_LEADER', 'PROJECT_MANAGER', 'ADMIN')")
     public ResponseEntity<List<ApiDtos.TaskResponse>> getAllTasks() {
-        return ResponseEntity.ok(taskService.getAllTasks().stream().map(ApiMapper::toTaskResponse).toList());
+        return ResponseEntity.ok(taskService.getAllTasks().stream()
+                .map(ApiMapper::toTaskResponse)
+                .toList());
     }
 
     @GetMapping("/{id}")
@@ -45,16 +47,15 @@ public class TaskController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('PROJECT_MANAGER', 'TEAM_LEADER', 'ADMIN')")
     public ResponseEntity<ApiDtos.TaskResponse> updateTask(
-            @PathVariable @NonNull Long id,
-            @Valid @RequestBody ApiDtos.TaskUpsertRequest request
-    ) {
+            @PathVariable @NonNull Long id, @Valid @RequestBody ApiDtos.TaskUpsertRequest request) {
         Task updatedTask = taskService.update(id, ApiMapper.toTask(request), request.projectId(), request.assigneeId());
         return ResponseEntity.ok(ApiMapper.toTaskResponse(updatedTask));
     }
 
     @PutMapping("/{id}/cancel")
     @PreAuthorize("hasAnyRole('PROJECT_MANAGER', 'ADMIN')")
-    public ResponseEntity<ApiDtos.TaskResponse> cancelTask(@PathVariable @NonNull Long id, @RequestParam String reason) {
+    public ResponseEntity<ApiDtos.TaskResponse> cancelTask(
+            @PathVariable @NonNull Long id, @RequestParam String reason) {
         return ResponseEntity.ok(ApiMapper.toTaskResponse(taskService.cancel(id, reason)));
     }
 
@@ -68,6 +69,3 @@ public class TaskController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 }
-
-
-

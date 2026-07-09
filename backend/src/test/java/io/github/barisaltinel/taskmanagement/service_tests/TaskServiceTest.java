@@ -1,19 +1,29 @@
 package io.github.barisaltinel.taskmanagement.service_tests;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import io.github.barisaltinel.taskmanagement.exception.TaskCannotBeModifiedException;
+import io.github.barisaltinel.taskmanagement.exception.TaskNotFoundException;
+import io.github.barisaltinel.taskmanagement.model.Project;
+import io.github.barisaltinel.taskmanagement.model.ProjectStatus;
 import io.github.barisaltinel.taskmanagement.model.Task;
 import io.github.barisaltinel.taskmanagement.model.TaskPriority;
 import io.github.barisaltinel.taskmanagement.model.TaskState;
-import io.github.barisaltinel.taskmanagement.model.Project;
-import io.github.barisaltinel.taskmanagement.model.ProjectStatus;
 import io.github.barisaltinel.taskmanagement.model.User;
 import io.github.barisaltinel.taskmanagement.repository.ProjectRepository;
 import io.github.barisaltinel.taskmanagement.repository.TaskRepository;
 import io.github.barisaltinel.taskmanagement.repository.UserRepository;
-import io.github.barisaltinel.taskmanagement.exception.TaskCannotBeModifiedException;
-import io.github.barisaltinel.taskmanagement.exception.TaskNotFoundException;
 import io.github.barisaltinel.taskmanagement.service.impl.TaskServiceImpl;
-import org.junit.jupiter.api.BeforeEach;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,17 +34,6 @@ import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TaskServiceTest {
@@ -82,13 +81,9 @@ class TaskServiceTest {
 
         mockTask.setProject(mockProject);
         mockTask.setAssignee(mockUser);
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(
-                        "admin@example.com",
-                        "N/A",
-                        Set.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
-                )
-        );
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(
+                        "admin@example.com", "N/A", Set.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
     }
 
     @AfterEach
@@ -98,7 +93,8 @@ class TaskServiceTest {
 
     @Test
     void shouldReturnAllTasks() {
-        when(taskRepository.findAllByDeletedFalseAndProjectDeletedFalseOrderByIdAsc()).thenReturn(List.of(mockTask));
+        when(taskRepository.findAllByDeletedFalseAndProjectDeletedFalseOrderByIdAsc())
+                .thenReturn(List.of(mockTask));
         List<Task> tasks = taskService.getAllTasks();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0)).isEqualTo(mockTask);
@@ -193,6 +189,3 @@ class TaskServiceTest {
         return any(Task.class);
     }
 }
-
-
-

@@ -22,7 +22,6 @@ public class TaskManagementEventListener {
                 event.getAction(),
                 event.getEntityType(),
                 event.getEntityId(),
-                event.getActor()
-        );
+                event.getActor());
     }
 }

@@ -1,5 +1,7 @@
 package io.github.barisaltinel.taskmanagement.repository_tests;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.github.barisaltinel.taskmanagement.model.Project;
 import io.github.barisaltinel.taskmanagement.model.ProjectStatus;
 import io.github.barisaltinel.taskmanagement.model.Task;
@@ -9,19 +11,14 @@ import io.github.barisaltinel.taskmanagement.model.User;
 import io.github.barisaltinel.taskmanagement.repository.ProjectRepository;
 import io.github.barisaltinel.taskmanagement.repository.TaskRepository;
 import io.github.barisaltinel.taskmanagement.repository.UserRepository;
+import java.util.List;
+import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-
-
-import java.util.List;
-import java.util.Objects;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 
 @DataJpaTest
 class TaskRepositoryTest {
@@ -87,5 +84,3 @@ class TaskRepositoryTest {
         return Objects.requireNonNull(task, message);
     }
 }
-
-

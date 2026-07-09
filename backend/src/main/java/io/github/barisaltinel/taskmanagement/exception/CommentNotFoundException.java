@@ -5,6 +5,3 @@ public class CommentNotFoundException extends RuntimeException {
         super("Comment not found!");
     }
 }
-
-
-

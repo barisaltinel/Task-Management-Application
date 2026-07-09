@@ -2,13 +2,6 @@ package io.github.barisaltinel.taskmanagement.service.impl;
 
 import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheCoordinator;
 import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheNames;
-import io.github.barisaltinel.taskmanagement.model.Comment;
-import io.github.barisaltinel.taskmanagement.model.Task;
-import io.github.barisaltinel.taskmanagement.model.User;
-import io.github.barisaltinel.taskmanagement.repository.CommentRepository;
-import io.github.barisaltinel.taskmanagement.repository.TaskRepository;
-import io.github.barisaltinel.taskmanagement.repository.UserRepository;
-import io.github.barisaltinel.taskmanagement.service.CommentService;
 import io.github.barisaltinel.taskmanagement.exception.AccessDeniedException;
 import io.github.barisaltinel.taskmanagement.exception.CommentNotFoundException;
 import io.github.barisaltinel.taskmanagement.exception.TaskNotFoundException;
@@ -17,17 +10,23 @@ import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEntityType;
 import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventAction;
 import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventPublisher;
 import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEvents;
+import io.github.barisaltinel.taskmanagement.model.Comment;
+import io.github.barisaltinel.taskmanagement.model.Task;
+import io.github.barisaltinel.taskmanagement.model.User;
+import io.github.barisaltinel.taskmanagement.repository.CommentRepository;
+import io.github.barisaltinel.taskmanagement.repository.TaskRepository;
+import io.github.barisaltinel.taskmanagement.repository.UserRepository;
+import io.github.barisaltinel.taskmanagement.service.CommentService;
 import io.github.barisaltinel.taskmanagement.util.SecurityUtils;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
 
 @Service
 public class CommentServiceImpl implements CommentService {
@@ -37,7 +36,8 @@ public class CommentServiceImpl implements CommentService {
     private TaskManagementEventPublisher eventPublisher = TaskManagementEventPublisher.noOp();
     private TaskManagementCacheCoordinator cacheCoordinator = TaskManagementCacheCoordinator.noOp();
 
-    public CommentServiceImpl(CommentRepository commentRepository, TaskRepository taskRepository, UserRepository userRepository) {
+    public CommentServiceImpl(
+            CommentRepository commentRepository, TaskRepository taskRepository, UserRepository userRepository) {
         this.commentRepository = commentRepository;
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
@@ -46,8 +46,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Cacheable(
             cacheNames = TaskManagementCacheNames.COMMENT_LIST,
-            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()"
-    )
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()")
     public List<Comment> getAllComments() {
         if (SecurityUtils.hasAnyRole("ADMIN", "PROJECT_MANAGER", "TEAM_LEADER")) {
             return commentRepository.findAllByTaskDeletedFalseAndTaskProjectDeletedFalseOrderByIdAsc();
@@ -59,19 +58,20 @@ public class CommentServiceImpl implements CommentService {
         }
 
         return commentRepository
-                .findAllByTaskDeletedFalseAndTaskProjectDeletedFalseAndTaskAssigneeDeletedFalseAndTaskAssigneeEmailIgnoreCaseOrderByIdAsc(currentUsername);
+                .findAllByTaskDeletedFalseAndTaskProjectDeletedFalseAndTaskAssigneeDeletedFalseAndTaskAssigneeEmailIgnoreCaseOrderByIdAsc(
+                        currentUsername);
     }
 
     @Override
     @Cacheable(
             cacheNames = TaskManagementCacheNames.COMMENT_DETAILS,
-            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)"
-    )
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)")
     public Comment findById(Long id) {
         Long requiredId = requireId(id, "Comment id");
 
         if (SecurityUtils.hasAnyRole("ADMIN", "PROJECT_MANAGER", "TEAM_LEADER")) {
-            return commentRepository.findByIdAndTaskDeletedFalseAndTaskProjectDeletedFalse(requiredId)
+            return commentRepository
+                    .findByIdAndTaskDeletedFalseAndTaskProjectDeletedFalse(requiredId)
                     .orElseThrow(CommentNotFoundException::new);
         }
 
@@ -81,7 +81,8 @@ public class CommentServiceImpl implements CommentService {
         }
 
         return commentRepository
-                .findByIdAndTaskDeletedFalseAndTaskProjectDeletedFalseAndTaskAssigneeDeletedFalseAndTaskAssigneeEmailIgnoreCase(requiredId, currentUsername)
+                .findByIdAndTaskDeletedFalseAndTaskProjectDeletedFalseAndTaskAssigneeDeletedFalseAndTaskAssigneeEmailIgnoreCase(
+                        requiredId, currentUsername)
                 .orElseThrow(AccessDeniedException::new);
     }
 
@@ -97,9 +98,11 @@ public class CommentServiceImpl implements CommentService {
             throw new AccessDeniedException();
         }
 
-        User author = userRepository.findByEmailIgnoreCaseAndDeletedFalse(currentUsername)
+        User author = userRepository
+                .findByEmailIgnoreCaseAndDeletedFalse(currentUsername)
                 .orElseThrow(UserNotFoundException::new);
-        Task task = taskRepository.findByIdAndDeletedFalseAndProjectDeletedFalse(requiredTaskId)
+        Task task = taskRepository
+                .findByIdAndDeletedFalseAndProjectDeletedFalse(requiredTaskId)
                 .orElseThrow(TaskNotFoundException::new);
 
         if (!canAccessTask(task)) {
@@ -118,8 +121,7 @@ public class CommentServiceImpl implements CommentService {
                 TaskManagementEntityType.COMMENT,
                 persistedComment.getId(),
                 TaskManagementEventAction.CREATED,
-                "Added comment to task " + task.getTitle()
-        ));
+                "Added comment to task " + task.getTitle()));
         return persistedComment;
     }
 
@@ -158,6 +160,3 @@ public class CommentServiceImpl implements CommentService {
         return Objects.requireNonNull(id, fieldName + " is required");
     }
 }
-
-
-

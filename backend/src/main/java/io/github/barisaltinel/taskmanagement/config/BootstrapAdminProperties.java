@@ -32,5 +32,3 @@ public class BootstrapAdminProperties {
         this.password = password;
     }
 }
-
-

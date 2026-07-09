@@ -1,9 +1,20 @@
 package io.github.barisaltinel.taskmanagement.service_tests;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import io.github.barisaltinel.taskmanagement.exception.UserNotFoundException;
 import io.github.barisaltinel.taskmanagement.model.User;
 import io.github.barisaltinel.taskmanagement.repository.UserRepository;
-import io.github.barisaltinel.taskmanagement.exception.UserNotFoundException;
 import io.github.barisaltinel.taskmanagement.service.impl.UserServiceImpl;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,18 +24,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -76,7 +75,8 @@ class UserServiceTest {
 
     @Test
     void shouldCreateUser() {
-        when(userRepository.existsByEmailIgnoreCaseAndDeletedFalse(mockUser.getEmail())).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCaseAndDeletedFalse(mockUser.getEmail()))
+                .thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(userRepository.save(anyUser())).thenReturn(requireUser(mockUser, "mockUser must not be null"));
 
@@ -86,7 +86,8 @@ class UserServiceTest {
 
     @Test
     void shouldRegisterUserWithDefaultRole() {
-        when(userRepository.existsByEmailIgnoreCaseAndDeletedFalse(mockUser.getEmail())).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCaseAndDeletedFalse(mockUser.getEmail()))
+                .thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(userRepository.save(anyUser())).thenReturn(requireUser(mockUser, "mockUser must not be null"));
 
@@ -97,7 +98,8 @@ class UserServiceTest {
     @Test
     void shouldUpdateUser() {
         when(userRepository.findByIdAndDeletedFalse(1L)).thenReturn(Optional.of(mockUser));
-        when(userRepository.existsByEmailIgnoreCaseAndDeletedFalse("updated@example.com")).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCaseAndDeletedFalse("updated@example.com"))
+                .thenReturn(false);
         when(userRepository.save(anyUser())).thenReturn(requireUser(mockUser, "mockUser must not be null"));
 
         User updatedUser = new User();
@@ -124,6 +126,3 @@ class UserServiceTest {
         return any(User.class);
     }
 }
-
-
-

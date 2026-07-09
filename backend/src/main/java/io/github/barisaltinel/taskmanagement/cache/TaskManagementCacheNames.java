@@ -14,8 +14,7 @@ public final class TaskManagementCacheNames {
     public static final String USER_LIST = "users:list";
     public static final String USER_DETAILS = "users:details";
 
-    private TaskManagementCacheNames() {
-    }
+    private TaskManagementCacheNames() {}
 
     public static List<String> all() {
         return List.of(
@@ -28,8 +27,7 @@ public final class TaskManagementCacheNames {
                 ATTACHMENT_LIST,
                 ATTACHMENT_DETAILS,
                 USER_LIST,
-                USER_DETAILS
-        );
+                USER_DETAILS);
     }
 
     public static List<String> workspace() {
@@ -41,7 +39,6 @@ public final class TaskManagementCacheNames {
                 COMMENT_LIST,
                 COMMENT_DETAILS,
                 ATTACHMENT_LIST,
-                ATTACHMENT_DETAILS
-        );
+                ATTACHMENT_DETAILS);
     }
 }

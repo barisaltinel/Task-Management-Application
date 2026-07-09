@@ -1,8 +1,7 @@
 package io.github.barisaltinel.taskmanagement.cache;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.time.Duration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "app.redis")
 public class RedisCacheProperties {

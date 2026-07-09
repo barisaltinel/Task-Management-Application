@@ -5,13 +5,11 @@ import io.github.barisaltinel.taskmanagement.model.Comment;
 import io.github.barisaltinel.taskmanagement.model.Project;
 import io.github.barisaltinel.taskmanagement.model.Task;
 import io.github.barisaltinel.taskmanagement.model.User;
-
 import java.util.Collections;
 import java.util.List;
 
 public final class ApiMapper {
-    private ApiMapper() {
-    }
+    private ApiMapper() {}
 
     public static User toUser(ApiDtos.AuthRegisterRequest request) {
         User user = new User();
@@ -64,22 +62,12 @@ public final class ApiMapper {
             return null;
         }
 
-        return new ApiDtos.UserSummaryResponse(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getRole()
-        );
+        return new ApiDtos.UserSummaryResponse(user.getId(), user.getName(), user.getEmail(), user.getRole());
     }
 
     public static ApiDtos.UserResponse toUserResponse(User user) {
         return new ApiDtos.UserResponse(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getRole(),
-                user.getCreatedAt()
-        );
+                user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt());
     }
 
     public static ApiDtos.ProjectSummaryResponse toProjectSummary(Project project) {
@@ -87,11 +75,7 @@ public final class ApiMapper {
             return null;
         }
 
-        return new ApiDtos.ProjectSummaryResponse(
-                project.getId(),
-                project.getTitle(),
-                project.getStatus()
-        );
+        return new ApiDtos.ProjectSummaryResponse(project.getId(), project.getTitle(), project.getStatus());
     }
 
     public static ApiDtos.ProjectResponse toProjectResponse(Project project) {
@@ -103,8 +87,7 @@ public final class ApiMapper {
                 project.getDescription(),
                 project.getDepartmentName(),
                 project.getStatus(),
-                teamMembers.stream().map(ApiMapper::toUserSummary).toList()
-        );
+                teamMembers.stream().map(ApiMapper::toUserSummary).toList());
     }
 
     public static ApiDtos.TaskResponse toTaskResponse(Task task) {
@@ -118,19 +101,13 @@ public final class ApiMapper {
                 task.getDueDate(),
                 task.getReason(),
                 toProjectSummary(task.getProject()),
-                toUserSummary(task.getAssignee())
-        );
+                toUserSummary(task.getAssignee()));
     }
 
     public static ApiDtos.CommentResponse toCommentResponse(Comment comment) {
         Long taskId = comment.getTask() != null ? comment.getTask().getId() : null;
         return new ApiDtos.CommentResponse(
-                comment.getId(),
-                comment.getText(),
-                taskId,
-                toUserSummary(comment.getAuthor()),
-                comment.getCreatedAt()
-        );
+                comment.getId(), comment.getText(), taskId, toUserSummary(comment.getAuthor()), comment.getCreatedAt());
     }
 
     public static ApiDtos.AttachmentResponse toAttachmentResponse(Attachment attachment) {
@@ -141,9 +118,6 @@ public final class ApiMapper {
                 attachment.getMimeType(),
                 attachment.getFileSize(),
                 taskId,
-                attachment.getUploadedAt()
-        );
+                attachment.getUploadedAt());
     }
 }
-
-

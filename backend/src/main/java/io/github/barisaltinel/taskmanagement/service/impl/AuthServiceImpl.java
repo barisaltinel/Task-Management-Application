@@ -9,13 +9,6 @@ import io.github.barisaltinel.taskmanagement.model.User;
 import io.github.barisaltinel.taskmanagement.repository.AuthTokenRepository;
 import io.github.barisaltinel.taskmanagement.repository.UserRepository;
 import io.github.barisaltinel.taskmanagement.service.AuthService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -23,6 +16,12 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -37,10 +36,7 @@ public class AuthServiceImpl implements AuthService {
     private TaskManagementEventPublisher eventPublisher = TaskManagementEventPublisher.noOp();
 
     public AuthServiceImpl(
-            UserRepository userRepository,
-            AuthTokenRepository authTokenRepository,
-            PasswordEncoder passwordEncoder
-    ) {
+            UserRepository userRepository, AuthTokenRepository authTokenRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.authTokenRepository = authTokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -53,7 +49,8 @@ public class AuthServiceImpl implements AuthService {
             throw new BadCredentialsException("Email or password is incorrect");
         }
 
-        User user = userRepository.findByEmailIgnoreCaseAndDeletedFalse(email.trim())
+        User user = userRepository
+                .findByEmailIgnoreCaseAndDeletedFalse(email.trim())
                 .orElseThrow(() -> new BadCredentialsException("Email or password is incorrect"));
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
@@ -73,8 +70,7 @@ public class AuthServiceImpl implements AuthService {
                 persistedToken.getId(),
                 TaskManagementEventAction.LOGGED_IN,
                 user.getEmail(),
-                "Started a new session"
-        ));
+                "Started a new session"));
 
         return new AuthSession(rawToken, persistedToken.getExpiresAt(), user);
     }
@@ -92,7 +88,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         AuthToken authToken = token.get();
-        if (authToken.getExpiresAt().isBefore(LocalDateTime.now()) || authToken.getUser().isDeleted()) {
+        if (authToken.getExpiresAt().isBefore(LocalDateTime.now())
+                || authToken.getUser().isDeleted()) {
             authToken.setRevoked(true);
             return null;
         }
@@ -107,7 +104,8 @@ public class AuthServiceImpl implements AuthService {
             return;
         }
 
-        authTokenRepository.findByTokenHashAndRevokedFalse(hashToken(rawToken.trim()))
+        authTokenRepository
+                .findByTokenHashAndRevokedFalse(hashToken(rawToken.trim()))
                 .ifPresent(token -> {
                     token.setRevoked(true);
                     User user = token.getUser();
@@ -117,8 +115,7 @@ public class AuthServiceImpl implements AuthService {
                             token.getId(),
                             TaskManagementEventAction.LOGGED_OUT,
                             actor,
-                            "Closed an active session"
-                    ));
+                            "Closed an active session"));
                 });
     }
 
@@ -145,5 +142,3 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 }
-
-

@@ -19,11 +19,13 @@ public class OpenApiConfig {
                         .version("v1")
                         .description("API documentation for the Task Management Application backend."))
                 .components(new Components()
-                        .addSecuritySchemes("bearerAuth", new SecurityScheme()
-                                .type(SecurityScheme.Type.HTTP)
-                                .scheme("bearer")
-                                .bearerFormat("JWT")
-                                .description("Paste the bearer token returned by the login endpoint.")))
+                        .addSecuritySchemes(
+                                "bearerAuth",
+                                new SecurityScheme()
+                                        .type(SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")
+                                        .description("Paste the bearer token returned by the login endpoint.")))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"));
     }
 }

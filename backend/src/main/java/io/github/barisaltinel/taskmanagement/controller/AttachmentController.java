@@ -2,16 +2,15 @@ package io.github.barisaltinel.taskmanagement.controller;
 
 import io.github.barisaltinel.taskmanagement.dto.ApiDtos;
 import io.github.barisaltinel.taskmanagement.dto.ApiMapper;
+import io.github.barisaltinel.taskmanagement.exception.AttachmentNotFoundException;
 import io.github.barisaltinel.taskmanagement.model.Attachment;
 import io.github.barisaltinel.taskmanagement.service.AttachmentService;
-import io.github.barisaltinel.taskmanagement.exception.AttachmentNotFoundException;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/attachments")
@@ -25,7 +24,9 @@ public class AttachmentController {
     @GetMapping
     @PreAuthorize("hasAnyRole('TEAM_MEMBER', 'TEAM_LEADER', 'PROJECT_MANAGER', 'ADMIN')")
     public ResponseEntity<List<ApiDtos.AttachmentResponse>> getAllAttachments() {
-        return ResponseEntity.ok(attachmentService.getAllAttachments().stream().map(ApiMapper::toAttachmentResponse).toList());
+        return ResponseEntity.ok(attachmentService.getAllAttachments().stream()
+                .map(ApiMapper::toAttachmentResponse)
+                .toList());
     }
 
     @GetMapping("/{id}")
@@ -37,8 +38,7 @@ public class AttachmentController {
     @PostMapping
     @PreAuthorize("hasAnyRole('TEAM_MEMBER', 'TEAM_LEADER', 'PROJECT_MANAGER', 'ADMIN')")
     public ResponseEntity<ApiDtos.AttachmentResponse> uploadAttachment(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("taskId") Long taskId) {
+            @RequestParam("file") MultipartFile file, @RequestParam("taskId") Long taskId) {
         Attachment attachment = attachmentService.upload(file, taskId);
         return new ResponseEntity<>(ApiMapper.toAttachmentResponse(attachment), HttpStatus.CREATED);
     }
@@ -55,6 +55,3 @@ public class AttachmentController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 }
-
-
-

@@ -2,9 +2,8 @@ package io.github.barisaltinel.taskmanagement.service;
 
 import io.github.barisaltinel.taskmanagement.exception.AttachmentNotFoundException;
 import io.github.barisaltinel.taskmanagement.model.Attachment;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface AttachmentService {
     /** Returns the active attachments the current user can access. */
@@ -22,5 +21,3 @@ public interface AttachmentService {
     /** Marks an attachment as deleted without removing the record. */
     void softDelete(Long id);
 }
-
-
