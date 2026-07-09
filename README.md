@@ -230,6 +230,22 @@ Published image names:
 For image publishing to GitHub Container Registry, the workflow uses the repository `GITHUB_TOKEN`, so no extra registry password is required for the same GitHub owner. If you later add real deployment to a VPS, cloud VM, or platform service, you will still need environment-specific secrets there.
 
 The usernames and passwords inside `docker-compose.yml` are only for local development. Do not reuse those defaults as production or deployment secrets.
+## Code Style
+
+Backend formatting uses Spotless with Google Java Format:
+
+```powershell
+cd backend
+./mvnw spotless:apply
+```
+
+Frontend formatting uses Prettier:
+
+```powershell
+cd frontend
+npm run format
+```
+
 ## Docker Setup
 
 Run the full stack with Docker Compose:
@@ -316,3 +332,4 @@ This repository now presents well as:
 - a portfolio-grade full-stack task management product
 - a bootcamp capstone evolved into a more production-minded workspace
 - a base for adding deeper product-management features such as task dependencies, automations, forms, and audit trails
+
