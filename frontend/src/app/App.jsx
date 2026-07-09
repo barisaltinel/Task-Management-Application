@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import TopHeader from '../components/layout/TopHeader';
 import MobileNav from '../components/layout/MobileNav';
@@ -9,594 +8,61 @@ import TasksView from '../features/tasks/TasksView';
 import ProjectsView from '../features/projects/ProjectsView';
 import FilesView from '../features/files/FilesView';
 import CommentsView from '../features/comments/CommentsView';
-import { apiRequest } from '../shared/api/client';
-import {
-  clearSession,
-  createSession,
-  readSession,
-  saveSession,
-} from '../shared/utils/session';
-import {
-  buildEmptyTaskForm,
-  DEFAULT_VIEW,
-  EMPTY_COMMENT_FORM,
-  EMPTY_LOGIN_FORM,
-  EMPTY_PROJECT_FORM,
-  EMPTY_REGISTER_FORM,
-  EMPTY_UPLOAD_FORM,
-  EMPTY_WORKSPACE,
-  getAvailableViews,
-  getDefaultViewForRole,
-} from './config';
+import { useNotice } from './hooks/useNotice';
+import { useWorkspaceData } from './hooks/useWorkspaceData';
+import { useWorkspaceInsights } from './hooks/useWorkspaceInsights';
+import { useWorkspaceSession } from './hooks/useWorkspaceSession';
+import { useWorkspaceView } from './hooks/useWorkspaceView';
 
 export default function App() {
-  const [session, setSession] = useState(readSession);
-  const [view, setView] = useState(DEFAULT_VIEW);
-  const [loading, setLoading] = useState(false);
-  const [notice, setNotice] = useState({ type: '', text: '' });
-  const [authMode, setAuthMode] = useState('login');
-  const [workspace, setWorkspace] = useState(EMPTY_WORKSPACE);
-  const [canManageProjects, setCanManageProjects] = useState(false);
-
-  const [loginForm, setLoginForm] = useState(EMPTY_LOGIN_FORM);
-  const [registerForm, setRegisterForm] = useState(EMPTY_REGISTER_FORM);
-  const [taskForm, setTaskForm] = useState(buildEmptyTaskForm);
-  const [projectForm, setProjectForm] = useState(EMPTY_PROJECT_FORM);
-  const [uploadForm, setUploadForm] = useState(EMPTY_UPLOAD_FORM);
-  const [commentForm, setCommentForm] = useState(EMPTY_COMMENT_FORM);
-
-  const role = session?.user?.role || '';
-  const availableViews = useMemo(
-    () => getAvailableViews(role, canManageProjects),
-    [role, canManageProjects]
+  const { notice, showNotice, dismissNotice } = useNotice();
+  const {
+    session,
+    role,
+    authMode,
+    setAuthMode,
+    loginForm,
+    setLoginForm,
+    registerForm,
+    setRegisterForm,
+    loading: authLoading,
+    handleLogin,
+    handleRegister,
+    handleLogout,
+    clearActiveSession,
+  } = useWorkspaceSession(showNotice);
+  const {
+    workspace,
+    canManageProjects,
+    loading: workspaceLoading,
+    taskForm,
+    setTaskForm,
+    projectForm,
+    setProjectForm,
+    uploadForm,
+    setUploadForm,
+    commentForm,
+    setCommentForm,
+    loadWorkspace,
+    handleTaskCreate,
+    handleTaskStateChange,
+    handleTaskCancel,
+    handleProjectCreate,
+    handleUpload,
+    handleCommentCreate,
+  } = useWorkspaceData({
+    session,
+    showNotice,
+    clearActiveSession,
+  });
+  const { view, setView, availableViews } = useWorkspaceView(
+    role,
+    canManageProjects
   );
+  const { selectableUsers, projectSnapshots, metrics, overview } =
+    useWorkspaceInsights(workspace);
 
-  const selectableUsers = useMemo(() => {
-    const usersById = new Map();
-
-    const registerUser = (user) => {
-      if (!user?.id || usersById.has(user.id)) {
-        return;
-      }
-
-      usersById.set(user.id, user);
-    };
-
-    workspace.projects.forEach((project) => {
-      (project.teamMembers || []).forEach(registerUser);
-    });
-    workspace.tasks.forEach((task) => registerUser(task.assignee));
-
-    return Array.from(usersById.values()).sort((left, right) =>
-      (left.name || '').localeCompare(right.name || '', undefined, {
-        sensitivity: 'base',
-      })
-    );
-  }, [workspace.projects, workspace.tasks]);
-
-  const projectSnapshots = useMemo(
-    () =>
-      workspace.projects
-        .map((project) => {
-          const projectTasks = workspace.tasks.filter(
-            (task) => task.project?.id === project.id
-          );
-          const completedCount = projectTasks.filter(
-            (task) => task.state === 'COMPLETED'
-          ).length;
-          const blockedCount = projectTasks.filter(
-            (task) => task.state === 'BLOCKED'
-          ).length;
-          const criticalCount = projectTasks.filter(
-            (task) => task.priority === 'CRITICAL' && task.state !== 'COMPLETED'
-          ).length;
-
-          return {
-            ...project,
-            taskCount: projectTasks.length,
-            completedCount,
-            blockedCount,
-            criticalCount,
-            teamCount: project.teamMembers?.length || 0,
-            completionRate: projectTasks.length
-              ? Math.round((completedCount / projectTasks.length) * 100)
-              : 0,
-          };
-        })
-        .sort((left, right) => right.taskCount - left.taskCount),
-    [workspace.projects, workspace.tasks]
-  );
-
-  const metrics = useMemo(
-    () => ({
-      total: workspace.tasks.length,
-      done: workspace.tasks.filter((task) => task.state === 'COMPLETED').length,
-      blocked: workspace.tasks.filter((task) => task.state === 'BLOCKED')
-        .length,
-      critical: workspace.tasks.filter((task) => task.priority === 'CRITICAL')
-        .length,
-      activeProjects: workspace.projects.filter(
-        (project) => project.status === 'IN_PROGRESS'
-      ).length,
-    }),
-    [workspace.projects, workspace.tasks]
-  );
-
-  const overview = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const openTasks = workspace.tasks.filter(
-      (task) => !['COMPLETED', 'CANCELLED'].includes(task.state)
-    );
-    const scheduledOpenTasks = openTasks
-      .filter((task) => task.dueDate)
-      .sort(
-        (left, right) =>
-          new Date(`${left.dueDate}T00:00:00`).getTime() -
-          new Date(`${right.dueDate}T00:00:00`).getTime()
-      );
-    const overdueTasks = scheduledOpenTasks.filter(
-      (task) => new Date(`${task.dueDate}T00:00:00`).getTime() < today.getTime()
-    );
-    const dueThisWeekCount = scheduledOpenTasks.filter((task) => {
-      const dueTime = new Date(`${task.dueDate}T00:00:00`).getTime();
-      const diffInDays = Math.round((dueTime - today.getTime()) / 86400000);
-      return diffInDays >= 0 && diffInDays <= 7;
-    }).length;
-    const atRiskTasks = workspace.tasks
-      .filter((task) => {
-        if (task.state === 'BLOCKED' || task.state === 'CANCELLED') {
-          return true;
-        }
-
-        if (task.priority === 'CRITICAL' && task.state !== 'COMPLETED') {
-          return true;
-        }
-
-        if (!task.dueDate || ['COMPLETED', 'CANCELLED'].includes(task.state)) {
-          return false;
-        }
-
-        return new Date(`${task.dueDate}T00:00:00`).getTime() < today.getTime();
-      })
-      .sort((left, right) => {
-        const resolveWeight = (task) => {
-          if (task.state === 'BLOCKED') {
-            return 4;
-          }
-          if (
-            task.dueDate &&
-            !['COMPLETED', 'CANCELLED'].includes(task.state) &&
-            new Date(`${task.dueDate}T00:00:00`).getTime() < today.getTime()
-          ) {
-            return 3;
-          }
-          if (task.priority === 'CRITICAL' && task.state !== 'COMPLETED') {
-            return 2;
-          }
-          return 1;
-        };
-
-        return resolveWeight(right) - resolveWeight(left);
-      });
-    const completionRate = metrics.total
-      ? Math.round((metrics.done / metrics.total) * 100)
-      : 0;
-    const openWorkRate = metrics.total
-      ? Math.round((openTasks.length / metrics.total) * 100)
-      : 0;
-    const collaborationVolume =
-      workspace.comments.length + workspace.attachments.length;
-    const teamLoad = selectableUsers
-      .map((user) => {
-        const assignedTasks = workspace.tasks.filter(
-          (task) => task.assignee?.id === user.id
-        );
-        const activeCount = assignedTasks.filter(
-          (task) => !['COMPLETED', 'CANCELLED'].includes(task.state)
-        ).length;
-
-        return {
-          id: user.id,
-          name: user.name,
-          role: user.role,
-          totalCount: assignedTasks.length,
-          activeCount,
-          blockedCount: assignedTasks.filter((task) => task.state === 'BLOCKED')
-            .length,
-          criticalCount: assignedTasks.filter(
-            (task) => task.priority === 'CRITICAL' && task.state !== 'COMPLETED'
-          ).length,
-        };
-      })
-      .filter((entry) => entry.totalCount > 0)
-      .sort((left, right) => right.activeCount - left.activeCount)
-      .slice(0, 5);
-    const recentComments = [...workspace.comments]
-      .sort(
-        (left, right) =>
-          new Date(right.createdAt).getTime() -
-          new Date(left.createdAt).getTime()
-      )
-      .slice(0, 4);
-    const recentFiles = [...workspace.attachments]
-      .sort(
-        (left, right) =>
-          new Date(right.uploadedAt).getTime() -
-          new Date(left.uploadedAt).getTime()
-      )
-      .slice(0, 4);
-
-    let pulseLabel = 'Building momentum';
-    if (
-      completionRate >= 70 &&
-      metrics.blocked <= 1 &&
-      overdueTasks.length === 0
-    ) {
-      pulseLabel = 'Healthy delivery pace';
-    } else if (
-      overdueTasks.length >= 2 ||
-      atRiskTasks.length >= 4 ||
-      metrics.blocked >= 3
-    ) {
-      pulseLabel = 'Needs leadership attention';
-    }
-
-    return {
-      completionRate,
-      openWorkRate,
-      collaborationVolume,
-      atRiskTasks: atRiskTasks.slice(0, 5),
-      atRiskCount: atRiskTasks.length,
-      overdueCount: overdueTasks.length,
-      dueThisWeekCount,
-      upcomingDeadlines: scheduledOpenTasks.slice(0, 6),
-      teamLoad,
-      recentComments,
-      recentFiles,
-      projectSnapshots: projectSnapshots.slice(0, 4),
-      pulseLabel,
-    };
-  }, [
-    metrics,
-    projectSnapshots,
-    selectableUsers,
-    workspace.attachments,
-    workspace.comments,
-    workspace.tasks,
-  ]);
-
-  const showNotice = useCallback((nextNotice) => {
-    setNotice((currentNotice) => ({
-      title: '',
-      ...currentNotice,
-      ...nextNotice,
-    }));
-  }, []);
-
-  const dismissNotice = useCallback(() => {
-    setNotice({ type: '', text: '', title: '' });
-  }, []);
-
-  const clearActiveSession = useCallback(
-    (message = 'Your session has expired. Please sign in again.') => {
-      clearSession();
-      setSession(null);
-      setWorkspace(EMPTY_WORKSPACE);
-      setCanManageProjects(false);
-      setView(DEFAULT_VIEW);
-      setAuthMode('login');
-      showNotice({
-        type: 'info',
-        title: 'Session ended',
-        text: message,
-      });
-    },
-    [showNotice]
-  );
-
-  const handleProtectedError = useCallback(
-    (error, fallbackMessage) => {
-      if (error?.status === 401) {
-        clearActiveSession(
-          error.message || 'Your session ended. Sign in again to continue.'
-        );
-        return true;
-      }
-
-      showNotice({
-        type: 'error',
-        title: 'Request failed',
-        text: error?.message || fallbackMessage,
-      });
-      return false;
-    },
-    [clearActiveSession, showNotice]
-  );
-
-  const loadWorkspace = useCallback(async (token, showSyncNotice = false) => {
-    setLoading(true);
-    const [tasks, projects, attachments, comments] = await Promise.allSettled([
-      apiRequest('/tasks', { token }),
-      apiRequest('/projects', { token }),
-      apiRequest('/attachments', { token }),
-      apiRequest('/comments', { token }),
-    ]);
-
-    if (tasks.status === 'rejected') {
-      handleProtectedError(tasks.reason, 'Authentication failed.');
-      setLoading(false);
-      return false;
-    }
-
-    setWorkspace({
-      tasks: tasks.value || [],
-      projects: projects.status === 'fulfilled' ? projects.value || [] : [],
-      attachments:
-        attachments.status === 'fulfilled' ? attachments.value || [] : [],
-      comments: comments.status === 'fulfilled' ? comments.value || [] : [],
-    });
-
-    setCanManageProjects(projects.status === 'fulfilled');
-    if (showSyncNotice) {
-      showNotice({
-        type: 'success',
-        title: 'Workspace updated',
-        text: 'Data synchronized.',
-      });
-    }
-
-    setLoading(false);
-    return true;
-  }, [handleProtectedError, showNotice]);
-
-  async function handleLogin(event) {
-    event.preventDefault();
-    try {
-      setLoading(true);
-      const authPayload = await apiRequest('/auth/login', {
-        method: 'POST',
-        body: loginForm,
-      });
-      const nextSession = createSession(authPayload, loginForm.email);
-      saveSession(nextSession);
-      setSession(nextSession);
-      setView(getDefaultViewForRole(nextSession.user?.role));
-      setLoginForm(EMPTY_LOGIN_FORM);
-      showNotice({
-        type: 'success',
-        title: 'Signed in',
-        text: 'Welcome back. Your workspace is syncing now.',
-      });
-    } catch (error) {
-      showNotice({
-        type: 'error',
-        title: 'Sign-in failed',
-        text: error.message || 'Sign in failed.',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleRegister(event) {
-    event.preventDefault();
-    try {
-      setLoading(true);
-      await apiRequest('/auth/register', {
-        method: 'POST',
-        body: registerForm,
-      });
-      setAuthMode('login');
-      setRegisterForm(EMPTY_REGISTER_FORM);
-      showNotice({
-        type: 'success',
-        title: 'Account created',
-        text: 'Please sign in to open your workspace.',
-      });
-    } catch (error) {
-      showNotice({
-        type: 'error',
-        title: 'Registration failed',
-        text: error.message || 'Registration failed.',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleLogout() {
-    if (session?.token) {
-      apiRequest('/auth/logout', {
-        method: 'POST',
-        token: session.token,
-      }).catch(() => {});
-    }
-    clearSession();
-    setSession(null);
-    setWorkspace(EMPTY_WORKSPACE);
-    setCanManageProjects(false);
-    setView(DEFAULT_VIEW);
-    setAuthMode('login');
-    showNotice({
-      type: 'info',
-      title: 'Signed out',
-      text: 'You have signed out of this tab.',
-    });
-  }
-
-  async function handleTaskCreate(event) {
-    event.preventDefault();
-    try {
-      setLoading(true);
-      await apiRequest('/tasks', {
-        method: 'POST',
-        token: session.token,
-        body: {
-          title: taskForm.title.trim(),
-          description: taskForm.description.trim(),
-          priority: taskForm.priority,
-          state: taskForm.state,
-          startDate: taskForm.startDate || null,
-          dueDate: taskForm.dueDate || null,
-          projectId: taskForm.projectId ? Number(taskForm.projectId) : null,
-          assigneeId: taskForm.assigneeId ? Number(taskForm.assigneeId) : null,
-        },
-      });
-      setTaskForm(buildEmptyTaskForm());
-      const synced = await loadWorkspace(session.token);
-      if (!synced) {
-        return false;
-      }
-      showNotice({
-        type: 'success',
-        title: 'Task created',
-        text: 'Your task was added successfully.',
-      });
-      return true;
-    } catch (error) {
-      handleProtectedError(error, 'Task creation failed.');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleTaskStateChange(task, nextState) {
-    try {
-      setLoading(true);
-      await apiRequest(`/tasks/${task.id}`, {
-        method: 'PUT',
-        token: session.token,
-        body: {
-          title: task.title,
-          description: task.description,
-          state: nextState,
-          priority: task.priority,
-          startDate: task.startDate || null,
-          dueDate: task.dueDate || null,
-          projectId: task.project?.id || null,
-          assigneeId: task.assignee?.id || null,
-        },
-      });
-      await loadWorkspace(session.token);
-    } catch (error) {
-      handleProtectedError(error, 'Task update failed.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleTaskCancel(taskId) {
-    const reason = window.prompt('Cancellation reason');
-    if (!reason) return;
-    try {
-      setLoading(true);
-      await apiRequest(
-        `/tasks/${taskId}/cancel?reason=${encodeURIComponent(reason)}`,
-        {
-          method: 'PUT',
-          token: session.token,
-        }
-      );
-      await loadWorkspace(session.token);
-    } catch (error) {
-      handleProtectedError(error, 'Task cancellation failed.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleProjectCreate(event) {
-    event.preventDefault();
-    try {
-      setLoading(true);
-      await apiRequest('/projects', {
-        method: 'POST',
-        token: session.token,
-        body: projectForm,
-      });
-      setProjectForm(EMPTY_PROJECT_FORM);
-      await loadWorkspace(session.token);
-    } catch (error) {
-      handleProtectedError(error, 'Project creation failed.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleUpload(event) {
-    event.preventDefault();
-    if (!uploadForm.file || !uploadForm.taskId) return;
-
-    const formData = new FormData();
-    formData.append('file', uploadForm.file);
-    formData.append('taskId', uploadForm.taskId);
-
-    try {
-      setLoading(true);
-      await apiRequest('/attachments', {
-        method: 'POST',
-        token: session.token,
-        body: formData,
-        isFormData: true,
-      });
-      setUploadForm(EMPTY_UPLOAD_FORM);
-      await loadWorkspace(session.token);
-    } catch (error) {
-      handleProtectedError(error, 'Upload failed.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleCommentCreate(event) {
-    event.preventDefault();
-    if (!commentForm.taskId || !commentForm.text.trim()) return;
-
-    try {
-      setLoading(true);
-      await apiRequest('/comments', {
-        method: 'POST',
-        token: session.token,
-        body: {
-          text: commentForm.text.trim(),
-          taskId: Number(commentForm.taskId),
-        },
-      });
-      setCommentForm(EMPTY_COMMENT_FORM);
-      await loadWorkspace(session.token);
-    } catch (error) {
-      handleProtectedError(error, 'Comment failed.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (session?.token) {
-      loadWorkspace(session.token);
-    }
-  }, [loadWorkspace, session?.token]);
-
-  useEffect(() => {
-    if (!availableViews.includes(view)) {
-      setView(getDefaultViewForRole(role, canManageProjects));
-    }
-  }, [availableViews, canManageProjects, role, view]);
-
-  useEffect(() => {
-    if (!notice?.text || notice.type === 'error') {
-      return undefined;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      dismissNotice();
-    }, 4200);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [dismissNotice, notice]);
+  const loading = authLoading || workspaceLoading;
 
   if (!session?.token) {
     return (
@@ -631,7 +97,7 @@ export default function App() {
         <TopHeader
           role={role}
           overview={overview}
-          onRefresh={() => loadWorkspace(session.token, true)}
+          onRefresh={() => loadWorkspace(true)}
           onLogout={handleLogout}
         />
         <MobileNav view={view} setView={setView} views={availableViews} />
@@ -692,7 +158,3 @@ export default function App() {
     </div>
   );
 }
-
-
-
-
