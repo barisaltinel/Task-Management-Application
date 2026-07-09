@@ -24,8 +24,9 @@ public class OpenApiConfig {
                                 new SecurityScheme()
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
-                                        .bearerFormat("JWT")
-                                        .description("Paste the bearer token returned by the login endpoint.")))
+                                        .bearerFormat("opaque-token")
+                                        .description("Paste the opaque bearer token returned by the login endpoint. This API does not use JWTs.")))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"));
     }
 }
+
