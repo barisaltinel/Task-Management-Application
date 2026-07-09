@@ -1,10 +1,10 @@
 # Task Management Application
 
-This project is a full-stack task management application built with a Spring Boot backend and a React frontend. It started as a solid CRUD-style project, then gradually grew into something closer to a lightweight work-management product: role-based access, project coordination, task planning, file attachments, comments, and a more dashboard-oriented workspace experience.
+Task Management Application is a full-stack workspace app built with Spring Boot and React. It started from a classic CRUD foundation and has been shaped into a more product-minded system focused on delivery visibility, team coordination, and day-to-day task execution.
 
-The goal of the project is simple: keep task execution, project visibility, and team collaboration in one place without making the interface feel heavy.
+The goal is simple: keep projects, tasks, comments, files, and team accountability in one place without turning the experience into a heavy enterprise tool.
 
-## What The App Covers
+## What The Product Covers
 
 - Authentication with role-based access
 - Project and task management
@@ -12,6 +12,7 @@ The goal of the project is simple: keep task execution, project visibility, and 
 - Start date and due date planning
 - Overview dashboard with delivery signals
 - Comments and file attachments tied to tasks
+- Swagger/OpenAPI documentation for technical review
 - Optional RabbitMQ event publishing
 - Optional Redis-backed caching
 - Docker-based local setup
@@ -33,6 +34,7 @@ The goal of the project is simple: keep task execution, project visibility, and 
 - H2 for tests
 - RabbitMQ
 - Redis
+- Springdoc OpenAPI
 - React 18
 - Vite 5
 
@@ -53,22 +55,221 @@ Backend package root: `io.github.barisaltinel.taskmanagement`
 
 ## Current Product Direction
 
-This version leans more into planning and delivery visibility than the earlier iterations.
+This version leans more into planning and delivery visibility than the earlier bootcamp-style iterations.
 
-Notable additions:
+Notable improvements:
 
 - tasks support both `startDate` and `dueDate`
 - overview screens surface overdue work, upcoming deadlines, and project health
 - task creation is closer to a planning workflow than a minimal CRUD form
 - the frontend is now backed by linting, automated tests, and a cleaner app structure
+- optional messaging and caching integrations make the backend easier to grow
+- Swagger/OpenAPI makes the API easier to inspect during reviews and integration work
+
+## Demo Flow
+
+If you want to walk a recruiter, teammate, or reviewer through the product, this sequence lands well:
+
+1. Open the app and show the authenticated workspace entry.
+2. Start on the overview page and highlight delivery pulse, overdue work, and upcoming deadlines.
+3. Move into tasks and demonstrate creation, assignment, scheduling, and state progression.
+4. Open projects and show how broader planning context sits above individual tasks.
+5. Open Swagger UI and show that the backend is documented and testable without digging through controller code.
+6. Finish with comments and file attachments to show collaboration around execution.
+
+## API Documentation
+
+The backend exposes public API documentation endpoints for technical review and integration work:
+
+- Swagger UI: `http://localhost:8080/swagger-ui`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+
+Swagger UI is public by default, while business endpoints still follow the project role model and bearer-token flow.
+
+## Architecture Diagram
+
+```mermaid
+flowchart LR
+    U[User] --> F[React Frontend\nVite App]
+    F -->|HTTP /api| B[Spring Boot Backend]
+    B --> D[Swagger UI / OpenAPI Docs]
+    B --> S[Spring Security + JWT Session Flow]
+    B --> DB[(MySQL)]
+    B --> R[(Redis Cache)]
+    B --> MQ[(RabbitMQ Events)]
+    B --> FS[(Local File Storage)]
+```
+
+## ER Diagram
+
+```mermaid
+erDiagram
+    USER ||--o{ PROJECT_USER : assigned_to
+    PROJECT ||--o{ PROJECT_USER : has
+    PROJECT ||--o{ TASK : contains
+    USER ||--o{ TASK : assigned_tasks
+    TASK ||--o{ COMMENT : has
+    USER ||--o{ COMMENT : writes
+    TASK ||--o{ ATTACHMENT : has
+
+    USER {
+        bigint id
+        string name
+        string email
+        string role
+        datetime created_at
+    }
+
+    PROJECT {
+        bigint id
+        string title
+        string description
+        string department_name
+        string status
+    }
+
+    TASK {
+        bigint id
+        string title
+        string description
+        string state
+        string priority
+        date start_date
+        date due_date
+        string reason
+    }
+
+    COMMENT {
+        bigint id
+        string text
+        datetime created_at
+    }
+
+    ATTACHMENT {
+        bigint id
+        string file_name
+        string mime_type
+        long file_size
+        datetime uploaded_at
+    }
+```
+
+## Example API Requests
+
+These examples match the current controllers and DTOs in the backend.
+
+### Register
+
+```http
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Baris Altinel",
+  "email": "baris@example.com",
+  "password": "StrongPassword123"
+}
+```
+
+### Login
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "email": "baris@example.com",
+  "password": "StrongPassword123"
+}
+```
+
+### Create Project
+
+```http
+POST /api/projects
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "Q3 Delivery Revamp",
+  "description": "Improve delivery visibility and reduce blocked work.",
+  "departmentName": "Product Engineering",
+  "status": "ACTIVE",
+  "teamMemberIds": [2, 3, 4]
+}
+```
+
+### Create Task
+
+```http
+POST /api/tasks
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "Prepare executive dashboard",
+  "description": "Build the first version of the delivery dashboard.",
+  "priority": "HIGH",
+  "state": "IN_PROGRESS",
+  "startDate": "2026-07-09",
+  "dueDate": "2026-07-16",
+  "projectId": 1,
+  "assigneeId": 2
+}
+```
+
+### Cancel Task
+
+```http
+PUT /api/tasks/7/cancel?reason=Scope%20changed
+Authorization: Bearer <token>
+```
+
+### Add Comment
+
+```http
+POST /api/comments
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "taskId": 7,
+  "text": "The API contract is ready for frontend integration."
+}
+```
+
+### Upload Attachment
+
+```http
+POST /api/attachments
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+file=<binary>
+taskId=7
+```
+
+## Main API Areas
+
+- `/api/auth`
+- `/api/projects`
+- `/api/tasks`
+- `/api/attachments`
+- `/api/users`
+- `/api/comments`
+- `/api/public/app-info`
+- `/swagger-ui`
+- `/v3/api-docs`
 
 ## Security Notes
 
 - Production secrets are not stored in the repository.
-- `backend/src/main/resources/application.properties` expects database credentials from environment variables.
+- `backend/src/main/resources/application.properties` expects runtime secrets from environment variables.
 - `backend/src/main/resources/application.example.properties` is the development-oriented template.
 - `backend/src/main/resources/application-prod.example.properties` shows a safer production-style baseline.
 - The optional bootstrap admin account is only created when `APP_BOOTSTRAP_ADMIN_EMAIL` and `APP_BOOTSTRAP_ADMIN_PASSWORD` are provided.
+- H2 console access should stay disabled in production profiles.
+- Swagger UI is public for documentation purposes, but protected endpoints still require the appropriate role and bearer token.
 
 ## Backend Setup
 
@@ -98,7 +299,12 @@ $env:APP_BOOTSTRAP_ADMIN_EMAIL="admin@example.com"
 $env:APP_BOOTSTRAP_ADMIN_PASSWORD="change-this-password"
 ```
 
-- `backend/src/main/resources/application-prod.example.properties` shows a safer production-style baseline.
+Springdoc defaults used by this project:
+
+```properties
+springdoc.api-docs.path=/v3/api-docs
+springdoc.swagger-ui.path=/swagger-ui
+```
 
 ### Optional RabbitMQ And Redis
 
@@ -158,16 +364,6 @@ Frontend URL:
 
 - `http://localhost:5173`
 
-## Suggested Demo Flow
-
-If you want to walk someone through the project, this order works well:
-
-1. Sign in with a role-based account.
-2. Start on the overview page to show delivery pulse, deadlines, and project health.
-3. Move to tasks and show filtering, scheduling, and state changes.
-4. Open projects to show broader planning visibility.
-5. Finish with files and comments to demonstrate collaboration around work items.
-
 ## Test, Lint, And Build
 
 Backend tests:
@@ -205,7 +401,7 @@ cd backend
 mvn -DskipTests package
 ```
 
-The backend test profile keeps RabbitMQ and Redis disabled so the test suite stays independent from local broker and cache services. Production-style environments should also keep the H2 console disabled and prefer `ddl-auto=validate` over `update`.
+The backend test profile keeps RabbitMQ and Redis disabled so the test suite stays independent from local broker and cache services. Production-style environments should keep the H2 console disabled and prefer `ddl-auto=validate` over `update`.
 
 ## Code Style
 
@@ -225,7 +421,7 @@ npm run format
 
 ## CI/CD
 
-GitHub Actions is set up with a practical baseline for a portfolio project or small production-minded repo.
+GitHub Actions is set up with a practical baseline for a portfolio project or a production-minded sample repository.
 
 - `/.github/workflows/ci.yml` runs backend tests, frontend lint, frontend tests, frontend build, and `docker compose config`
 - `/.github/workflows/docker-publish.yml` builds and publishes backend and frontend container images to GitHub Container Registry
@@ -250,7 +446,7 @@ Published image names:
 
 ## Docker Setup
 
-To run the full stack locally:`r`n`r`nThis Compose file is intentionally development-only. It uses demo credentials, enables optional infrastructure, and keeps `ddl-auto=update` for convenience.
+This Compose file is intentionally development-only. It uses demo credentials, enables optional infrastructure, and keeps `ddl-auto=update` for convenience.
 
 ```powershell
 docker compose up --build
@@ -281,12 +477,14 @@ Default local endpoints:
 
 - frontend UI: `http://localhost:3000`
 - backend API: `http://localhost:8080`
+- Swagger UI: `http://localhost:8080/swagger-ui`
 - RabbitMQ management UI: `http://localhost:15672`
 
 With the alternate port example above:
 
 - frontend UI: `http://localhost:13000`
 - backend API: `http://localhost:18080`
+- Swagger UI: `http://localhost:18080/swagger-ui`
 - RabbitMQ management UI: `http://localhost:15673`
 
 Inside Docker:
@@ -304,17 +502,6 @@ Files involved in the container setup:
 - `backend/Dockerfile`
 - `frontend/Dockerfile`
 
-- `backend/src/main/resources/application-prod.example.properties` shows a safer production-style baseline.
-
-## Main API Areas
-
-- `/api/auth`
-- `/api/projects`
-- `/api/tasks`
-- `/api/attachments`
-- `/api/users`
-- `/api/comments`
-
 ## Positioning
 
 This repository works well as:
@@ -322,5 +509,3 @@ This repository works well as:
 - a portfolio-ready full-stack application
 - a bootcamp project pushed toward a more production-minded standard
 - a base for future additions such as task dependencies, audit trails, automations, and workflow rules
-
-
