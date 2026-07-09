@@ -1,20 +1,19 @@
 package io.github.barisaltinel.taskmanagement.repository_tests;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.github.barisaltinel.taskmanagement.model.Project;
 import io.github.barisaltinel.taskmanagement.model.ProjectStatus;
 import io.github.barisaltinel.taskmanagement.repository.ProjectRepository;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 class ProjectRepositoryTest {
@@ -45,7 +44,8 @@ class ProjectRepositoryTest {
         testProject.setTitle("Updated Title");
         projectRepository.save(testProject);
 
-        Optional<Project> updatedProject = projectRepository.findById(requireId(testProject.getId(), "Project id is required"));
+        Optional<Project> updatedProject =
+                projectRepository.findById(requireId(testProject.getId(), "Project id is required"));
         assertThat(updatedProject).isPresent();
         assertThat(updatedProject.get().getTitle()).isEqualTo("Updated Title");
     }
@@ -55,7 +55,8 @@ class ProjectRepositoryTest {
         testProject.setStatus(ProjectStatus.CANCELLED);
         projectRepository.save(testProject);
 
-        Optional<Project> deletedProject = projectRepository.findById(requireId(testProject.getId(), "Project id is required"));
+        Optional<Project> deletedProject =
+                projectRepository.findById(requireId(testProject.getId(), "Project id is required"));
         assertThat(deletedProject).isPresent();
         assertThat(deletedProject.get().getStatus()).isEqualTo(ProjectStatus.CANCELLED);
     }
@@ -64,5 +65,3 @@ class ProjectRepositoryTest {
         return Objects.requireNonNull(id, message);
     }
 }
-
-

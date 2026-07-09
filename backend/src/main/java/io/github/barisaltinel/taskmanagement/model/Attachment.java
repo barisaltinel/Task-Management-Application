@@ -10,13 +10,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -58,7 +57,8 @@ public class Attachment {
         this.deleted = true;
     }
 
-    public static Attachment createNewAttachment(String fileName, String filePath, String mimeType, Long fileSize, Task task) {
+    public static Attachment createNewAttachment(
+            String fileName, String filePath, String mimeType, Long fileSize, Task task) {
         return Attachment.builder()
                 .fileName(fileName)
                 .filePath(filePath)
@@ -70,5 +70,3 @@ public class Attachment {
                 .build();
     }
 }
-
-

@@ -1,12 +1,18 @@
 package io.github.barisaltinel.taskmanagement.controller_tests;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.*;
+
 import io.github.barisaltinel.taskmanagement.controller.TaskController;
 import io.github.barisaltinel.taskmanagement.dto.ApiDtos;
+import io.github.barisaltinel.taskmanagement.exception.TaskNotFoundException;
 import io.github.barisaltinel.taskmanagement.model.Task;
 import io.github.barisaltinel.taskmanagement.model.TaskPriority;
 import io.github.barisaltinel.taskmanagement.model.TaskState;
 import io.github.barisaltinel.taskmanagement.service.TaskService;
-import io.github.barisaltinel.taskmanagement.exception.TaskNotFoundException;
+import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,13 +21,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.test.context.support.WithMockUser;
-
-import java.time.LocalDate;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TaskControllerTest {
@@ -84,8 +83,7 @@ class TaskControllerTest {
                 LocalDate.now(),
                 LocalDate.now().plusDays(7),
                 10L,
-                20L
-        );
+                20L);
         when(taskService.create(any(Task.class), anyLong(), anyLong())).thenReturn(mockTask);
         ResponseEntity<ApiDtos.TaskResponse> response = taskController.createTask(request);
         assertThat(response.getBody()).isNotNull();
@@ -103,9 +101,9 @@ class TaskControllerTest {
                 LocalDate.now(),
                 LocalDate.now().plusDays(10),
                 10L,
-                20L
-        );
-        when(taskService.update(anyLong(), any(Task.class), anyLong(), anyLong())).thenReturn(mockTask);
+                20L);
+        when(taskService.update(anyLong(), any(Task.class), anyLong(), anyLong()))
+                .thenReturn(mockTask);
         ResponseEntity<ApiDtos.TaskResponse> response = taskController.updateTask(1L, request);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().title()).isEqualTo(mockTask.getTitle());
@@ -120,6 +118,3 @@ class TaskControllerTest {
         assertThat(response.getBody().title()).isEqualTo(mockTask.getTitle());
     }
 }
-
-
-

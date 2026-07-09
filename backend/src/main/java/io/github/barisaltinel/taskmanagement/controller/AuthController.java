@@ -7,12 +7,12 @@ import io.github.barisaltinel.taskmanagement.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.util.StringUtils;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -29,8 +29,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiDtos.UserResponse> registerUser(@Valid @RequestBody ApiDtos.AuthRegisterRequest request) {
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
+        return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiMapper.toUserResponse(userService.register(ApiMapper.toUser(request))));
     }
 
@@ -38,15 +37,13 @@ public class AuthController {
     public ResponseEntity<ApiDtos.AuthResponse> login(@Valid @RequestBody ApiDtos.AuthLoginRequest request) {
         AuthService.AuthSession session = authService.login(request.email(), request.password());
         ApiDtos.AuthResponse response = new ApiDtos.AuthResponse(
-                session.token(),
-                session.expiresAt(),
-                ApiMapper.toUserResponse(session.user())
-        );
+                session.token(), session.expiresAt(), ApiMapper.toUserResponse(session.user()));
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+    public ResponseEntity<Void> logout(
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         authService.logout(extractBearerToken(authorizationHeader));
         return ResponseEntity.noContent().build();
     }
@@ -58,5 +55,3 @@ public class AuthController {
         return authorizationHeader.substring(BEARER_PREFIX.length()).trim();
     }
 }
-
-

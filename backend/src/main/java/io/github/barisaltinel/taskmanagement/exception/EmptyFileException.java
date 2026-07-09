@@ -5,5 +5,3 @@ public class EmptyFileException extends RuntimeException {
         super("Cannot upload an empty file.");
     }
 }
-
-

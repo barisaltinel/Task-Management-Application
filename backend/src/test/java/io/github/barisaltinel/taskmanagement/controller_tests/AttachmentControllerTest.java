@@ -1,10 +1,17 @@
 package io.github.barisaltinel.taskmanagement.controller_tests;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
+
 import io.github.barisaltinel.taskmanagement.controller.AttachmentController;
 import io.github.barisaltinel.taskmanagement.dto.ApiDtos;
+import io.github.barisaltinel.taskmanagement.exception.AttachmentNotFoundException;
 import io.github.barisaltinel.taskmanagement.model.Attachment;
 import io.github.barisaltinel.taskmanagement.service.AttachmentService;
-import io.github.barisaltinel.taskmanagement.exception.AttachmentNotFoundException;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,12 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
-import java.util.List;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AttachmentControllerTest {
@@ -72,9 +73,8 @@ class AttachmentControllerTest {
     @Test
     @WithMockUser(username = "team_member", roles = "TEAM_MEMBER")
     void shouldUploadFileSuccessfully() {
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "test-file.txt", "text/plain", "Hello, World!".getBytes()
-        );
+        MockMultipartFile file =
+                new MockMultipartFile("file", "test-file.txt", "text/plain", "Hello, World!".getBytes());
         when(attachmentService.upload(any(), anyLong())).thenReturn(mockAttachment);
         ResponseEntity<ApiDtos.AttachmentResponse> response = attachmentController.uploadAttachment(file, 1L);
         assertThat(response.getBody()).isNotNull();
@@ -89,6 +89,3 @@ class AttachmentControllerTest {
         assertThat(response.getStatusCode().value()).isEqualTo(204);
     }
 }
-
-
-

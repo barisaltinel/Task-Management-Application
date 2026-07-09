@@ -1,7 +1,6 @@
 package io.github.barisaltinel.taskmanagement.service.impl;
 
 import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheCoordinator;
-import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys;
 import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheNames;
 import io.github.barisaltinel.taskmanagement.exception.AccessDeniedException;
 import io.github.barisaltinel.taskmanagement.exception.ProjectNotFoundException;
@@ -21,16 +20,15 @@ import io.github.barisaltinel.taskmanagement.repository.TaskRepository;
 import io.github.barisaltinel.taskmanagement.repository.UserRepository;
 import io.github.barisaltinel.taskmanagement.service.TaskService;
 import io.github.barisaltinel.taskmanagement.util.SecurityUtils;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Objects;
 
 @Service
 public class TaskServiceImpl implements TaskService {
@@ -40,7 +38,8 @@ public class TaskServiceImpl implements TaskService {
     private TaskManagementEventPublisher eventPublisher = TaskManagementEventPublisher.noOp();
     private TaskManagementCacheCoordinator cacheCoordinator = TaskManagementCacheCoordinator.noOp();
 
-    public TaskServiceImpl(TaskRepository taskRepository, ProjectRepository projectRepository, UserRepository userRepository) {
+    public TaskServiceImpl(
+            TaskRepository taskRepository, ProjectRepository projectRepository, UserRepository userRepository) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
@@ -49,8 +48,7 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Cacheable(
             cacheNames = TaskManagementCacheNames.TASK_LIST,
-            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()"
-    )
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()")
     public List<Task> getAllTasks() {
         if (SecurityUtils.hasAnyRole("ADMIN", "PROJECT_MANAGER", "TEAM_LEADER")) {
             return taskRepository.findAllByDeletedFalseAndProjectDeletedFalseOrderByIdAsc();
@@ -61,18 +59,20 @@ public class TaskServiceImpl implements TaskService {
             throw new AccessDeniedException();
         }
 
-        return taskRepository.findAllByDeletedFalseAndProjectDeletedFalseAndAssigneeDeletedFalseAndAssigneeEmailIgnoreCaseOrderByIdAsc(currentUsername);
+        return taskRepository
+                .findAllByDeletedFalseAndProjectDeletedFalseAndAssigneeDeletedFalseAndAssigneeEmailIgnoreCaseOrderByIdAsc(
+                        currentUsername);
     }
 
     @Override
     @Cacheable(
             cacheNames = TaskManagementCacheNames.TASK_DETAILS,
-            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)"
-    )
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)")
     public Task findById(@NonNull Long id) {
         Long requiredId = requireId(id, "Task id");
         if (SecurityUtils.hasAnyRole("ADMIN", "PROJECT_MANAGER", "TEAM_LEADER")) {
-            return taskRepository.findByIdAndDeletedFalseAndProjectDeletedFalse(requiredId)
+            return taskRepository
+                    .findByIdAndDeletedFalseAndProjectDeletedFalse(requiredId)
                     .orElseThrow(TaskNotFoundException::new);
         }
 
@@ -81,7 +81,9 @@ public class TaskServiceImpl implements TaskService {
             throw new AccessDeniedException();
         }
 
-        return taskRepository.findByIdAndDeletedFalseAndProjectDeletedFalseAndAssigneeDeletedFalseAndAssigneeEmailIgnoreCase(requiredId, currentUsername)
+        return taskRepository
+                .findByIdAndDeletedFalseAndProjectDeletedFalseAndAssigneeDeletedFalseAndAssigneeEmailIgnoreCase(
+                        requiredId, currentUsername)
                 .orElseThrow(AccessDeniedException::new);
     }
 
@@ -106,8 +108,7 @@ public class TaskServiceImpl implements TaskService {
                 TaskManagementEntityType.TASK,
                 persistedTask.getId(),
                 TaskManagementEventAction.CREATED,
-                "Created task " + persistedTask.getTitle()
-        ));
+                "Created task " + persistedTask.getTitle()));
         return persistedTask;
     }
 
@@ -143,8 +144,7 @@ public class TaskServiceImpl implements TaskService {
                 TaskManagementEntityType.TASK,
                 persistedTask.getId(),
                 TaskManagementEventAction.UPDATED,
-                "Updated task " + persistedTask.getTitle()
-        ));
+                "Updated task " + persistedTask.getTitle()));
         return persistedTask;
     }
 
@@ -169,8 +169,7 @@ public class TaskServiceImpl implements TaskService {
                 TaskManagementEntityType.TASK,
                 persistedTask.getId(),
                 TaskManagementEventAction.CANCELLED,
-                "Cancelled task " + persistedTask.getTitle()
-        ));
+                "Cancelled task " + persistedTask.getTitle()));
         return persistedTask;
     }
 
@@ -190,14 +189,12 @@ public class TaskServiceImpl implements TaskService {
 
     private Project resolveProject(Long projectId) {
         Long requiredProjectId = requireId(projectId, "Project id");
-        return projectRepository.findByIdAndDeletedFalse(requiredProjectId)
-                .orElseThrow(ProjectNotFoundException::new);
+        return projectRepository.findByIdAndDeletedFalse(requiredProjectId).orElseThrow(ProjectNotFoundException::new);
     }
 
     private User resolveUser(Long userId) {
         Long requiredUserId = requireId(userId, "Assignee id");
-        return userRepository.findByIdAndDeletedFalse(requiredUserId)
-                .orElseThrow(UserNotFoundException::new);
+        return userRepository.findByIdAndDeletedFalse(requiredUserId).orElseThrow(UserNotFoundException::new);
     }
 
     private @NonNull Long requireId(@Nullable Long id, String fieldName) {
@@ -214,6 +211,3 @@ public class TaskServiceImpl implements TaskService {
         }
     }
 }
-
-
-

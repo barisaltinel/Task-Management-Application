@@ -1,10 +1,19 @@
 package io.github.barisaltinel.taskmanagement.integration_tests;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.barisaltinel.taskmanagement.model.Project;
 import io.github.barisaltinel.taskmanagement.model.ProjectStatus;
 import io.github.barisaltinel.taskmanagement.repository.ProjectRepository;
 import jakarta.transaction.Transactional;
+import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,16 +24,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.Objects;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -55,8 +54,7 @@ class ProjectIntegrationTest {
     @Test
     @WithMockUser(username = "project_manager", roles = "PROJECT_MANAGER")
     void shouldReturnAllProjects() throws Exception {
-        mockMvc.perform(get("/api/projects")
-                .contentType(requireMediaType(MediaType.APPLICATION_JSON)))
+        mockMvc.perform(get("/api/projects").contentType(requireMediaType(MediaType.APPLICATION_JSON)))
                 .andExpect(status().isOk());
     }
 
@@ -70,8 +68,8 @@ class ProjectIntegrationTest {
         newProject.setDepartmentName("HR");
 
         mockMvc.perform(post("/api/projects")
-                .contentType(requireMediaType(MediaType.APPLICATION_JSON))
-                .content(requireContent(objectMapper.writeValueAsString(newProject))))
+                        .contentType(requireMediaType(MediaType.APPLICATION_JSON))
+                        .content(requireContent(objectMapper.writeValueAsString(newProject))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("New Test Project"));
     }
@@ -85,8 +83,8 @@ class ProjectIntegrationTest {
         newProject.setDepartmentName("HR");
 
         mockMvc.perform(post("/api/projects")
-                .contentType(requireMediaType(MediaType.APPLICATION_JSON))
-                .content(requireContent(objectMapper.writeValueAsString(newProject))))
+                        .contentType(requireMediaType(MediaType.APPLICATION_JSON))
+                        .content(requireContent(objectMapper.writeValueAsString(newProject))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -96,8 +94,8 @@ class ProjectIntegrationTest {
         testProject.setTitle("Updated Project Title");
 
         mockMvc.perform(put("/api/projects/" + testProject.getId())
-                .contentType(requireMediaType(MediaType.APPLICATION_JSON))
-                .content(requireContent(objectMapper.writeValueAsString(testProject))))
+                        .contentType(requireMediaType(MediaType.APPLICATION_JSON))
+                        .content(requireContent(objectMapper.writeValueAsString(testProject))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Updated Project Title"));
     }
@@ -105,10 +103,10 @@ class ProjectIntegrationTest {
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
     void shouldSoftDeleteProject() throws Exception {
-        mockMvc.perform(delete("/api/projects/" + testProject.getId()))
-                .andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/projects/" + testProject.getId())).andExpect(status().isNoContent());
 
-        assertThat(projectRepository.findById(requireId(testProject.getId(), "Project id is required"))).isPresent();
+        assertThat(projectRepository.findById(requireId(testProject.getId(), "Project id is required")))
+                .isPresent();
     }
 
     private @NonNull Project requireProject(@Nullable Project project, String message) {
@@ -127,5 +125,3 @@ class ProjectIntegrationTest {
         return Objects.requireNonNull(id, message);
     }
 }
-
-

@@ -5,6 +5,3 @@ public class AttachmentNotFoundException extends RuntimeException {
         super("Attachment not found!");
     }
 }
-
-
-

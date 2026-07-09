@@ -30,9 +30,7 @@ public class SecurityConfig {
     private final boolean h2ConsoleEnabled;
 
     public SecurityConfig(
-            Environment environment,
-            @Value("${spring.h2.console.enabled:false}") boolean h2ConsoleEnabled
-    ) {
+            Environment environment, @Value("${spring.h2.console.enabled:false}") boolean h2ConsoleEnabled) {
         this.environment = environment;
         this.h2ConsoleEnabled = h2ConsoleEnabled;
     }
@@ -44,11 +42,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(
-            HttpSecurity http,
-            BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter
-    ) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
+            HttpSecurity http, BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter) throws Exception {
+        http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> {
                     if (isH2ConsoleAllowed()) {
@@ -61,25 +56,31 @@ public class SecurityConfig {
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(401);
                             response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write(
-                                    "{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Authentication required\",\"path\":\""
-                                            + request.getRequestURI()
-                                            + "\",\"loginEndpoint\":\"/api/auth/login\"}"
-                            );
+                            response.getWriter()
+                                    .write(
+                                            "{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Authentication required\",\"path\":\""
+                                                    + request.getRequestURI()
+                                                    + "\",\"loginEndpoint\":\"/api/auth/login\"}");
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             response.setStatus(403);
                             response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write(
-                                    "{\"status\":403,\"error\":\"Forbidden\",\"message\":\"Access denied\",\"path\":\""
-                                            + request.getRequestURI()
-                                            + "\"}"
-                            );
-                        })
-                )
+                            response.getWriter()
+                                    .write(
+                                            "{\"status\":403,\"error\":\"Forbidden\",\"message\":\"Access denied\",\"path\":\""
+                                                    + request.getRequestURI()
+                                                    + "\"}");
+                        }))
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers(HttpMethod.GET, "/", "/api", "/api/public/app-info").permitAll();
-                    auth.requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui", "/swagger-ui.html", "/swagger-ui/**")
+                    auth.requestMatchers(HttpMethod.GET, "/", "/api", "/api/public/app-info")
+                            .permitAll();
+                    auth.requestMatchers(
+                                    HttpMethod.GET,
+                                    "/v3/api-docs",
+                                    "/v3/api-docs/**",
+                                    "/swagger-ui",
+                                    "/swagger-ui.html",
+                                    "/swagger-ui/**")
                             .permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll();
@@ -95,7 +96,8 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.PUT, "/api/projects/**").hasAnyRole("PROJECT_MANAGER", "ADMIN");
                     auth.requestMatchers(HttpMethod.DELETE, "/api/projects/**").hasRole("ADMIN");
                     auth.requestMatchers(HttpMethod.POST, "/api/tasks/**").hasAnyRole("PROJECT_MANAGER", "ADMIN");
-                    auth.requestMatchers(HttpMethod.PUT, "/api/tasks/**").hasAnyRole("PROJECT_MANAGER", "TEAM_LEADER", "ADMIN");
+                    auth.requestMatchers(HttpMethod.PUT, "/api/tasks/**")
+                            .hasAnyRole("PROJECT_MANAGER", "TEAM_LEADER", "ADMIN");
                     auth.requestMatchers(HttpMethod.PATCH, "/api/tasks/**")
                             .hasAnyRole("TEAM_MEMBER", "TEAM_LEADER", "PROJECT_MANAGER", "ADMIN");
                     auth.requestMatchers(HttpMethod.POST, "/api/attachments/**")
@@ -121,8 +123,7 @@ public class SecurityConfig {
     public CommandLineRunner bootstrapAdminUser(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            BootstrapAdminProperties bootstrapAdminProperties
-    ) {
+            BootstrapAdminProperties bootstrapAdminProperties) {
         return args -> {
             String adminEmail = bootstrapAdminProperties.getEmail();
             String adminPassword = bootstrapAdminProperties.getPassword();

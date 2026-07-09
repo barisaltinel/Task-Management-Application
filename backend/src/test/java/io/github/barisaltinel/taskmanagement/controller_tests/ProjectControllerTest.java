@@ -1,10 +1,16 @@
 package io.github.barisaltinel.taskmanagement.controller_tests;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
+
 import io.github.barisaltinel.taskmanagement.controller.ProjectController;
 import io.github.barisaltinel.taskmanagement.dto.ApiDtos;
 import io.github.barisaltinel.taskmanagement.model.Project;
 import io.github.barisaltinel.taskmanagement.model.ProjectStatus;
 import io.github.barisaltinel.taskmanagement.service.ProjectService;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,11 +19,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.test.context.support.WithMockUser;
-import java.util.List;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectControllerTest {
@@ -60,12 +61,7 @@ class ProjectControllerTest {
     @WithMockUser(username = "project_manager", roles = "PROJECT_MANAGER")
     void shouldCreateProject() {
         ApiDtos.ProjectUpsertRequest request = new ApiDtos.ProjectUpsertRequest(
-                "Test Project",
-                "Project for testing",
-                "IT",
-                ProjectStatus.IN_PROGRESS,
-                List.of()
-        );
+                "Test Project", "Project for testing", "IT", ProjectStatus.IN_PROGRESS, List.of());
         when(projectService.create(any(Project.class), anyList())).thenReturn(mockProject);
         ResponseEntity<ApiDtos.ProjectResponse> response = projectController.createProject(request);
         assertThat(response.getBody()).isNotNull();
@@ -76,12 +72,7 @@ class ProjectControllerTest {
     @WithMockUser(username = "project_manager", roles = "PROJECT_MANAGER")
     void shouldUpdateProject() {
         ApiDtos.ProjectUpsertRequest request = new ApiDtos.ProjectUpsertRequest(
-                "Test Project",
-                "Project for testing",
-                "IT",
-                ProjectStatus.IN_PROGRESS,
-                List.of()
-        );
+                "Test Project", "Project for testing", "IT", ProjectStatus.IN_PROGRESS, List.of());
         when(projectService.update(anyLong(), any(Project.class), anyList())).thenReturn(mockProject);
         ResponseEntity<ApiDtos.ProjectResponse> response = projectController.updateProject(1L, request);
         assertThat(response.getBody()).isNotNull();
@@ -96,5 +87,3 @@ class ProjectControllerTest {
         assertThat(response.getStatusCode().value()).isEqualTo(204);
     }
 }
-
-

@@ -2,11 +2,6 @@ package io.github.barisaltinel.taskmanagement.service.impl;
 
 import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheCoordinator;
 import io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheNames;
-import io.github.barisaltinel.taskmanagement.model.Attachment;
-import io.github.barisaltinel.taskmanagement.model.Task;
-import io.github.barisaltinel.taskmanagement.repository.AttachmentRepository;
-import io.github.barisaltinel.taskmanagement.repository.TaskRepository;
-import io.github.barisaltinel.taskmanagement.service.AttachmentService;
 import io.github.barisaltinel.taskmanagement.exception.AccessDeniedException;
 import io.github.barisaltinel.taskmanagement.exception.AttachmentNotFoundException;
 import io.github.barisaltinel.taskmanagement.exception.EmptyFileException;
@@ -15,16 +10,12 @@ import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEntityType;
 import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventAction;
 import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEventPublisher;
 import io.github.barisaltinel.taskmanagement.messaging.TaskManagementEvents;
+import io.github.barisaltinel.taskmanagement.model.Attachment;
+import io.github.barisaltinel.taskmanagement.model.Task;
+import io.github.barisaltinel.taskmanagement.repository.AttachmentRepository;
+import io.github.barisaltinel.taskmanagement.repository.TaskRepository;
+import io.github.barisaltinel.taskmanagement.service.AttachmentService;
 import io.github.barisaltinel.taskmanagement.util.SecurityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Service;
-import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
-import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,12 +25,21 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class AttachmentServiceImpl implements AttachmentService {
     private static final String UPLOAD_DIR = "uploads/";
     private static final long MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
-    private static final Set<String> ALLOWED_MIME_TYPES = Set.of("application/pdf", "text/plain", "image/png", "image/jpeg");
+    private static final Set<String> ALLOWED_MIME_TYPES =
+            Set.of("application/pdf", "text/plain", "image/png", "image/jpeg");
 
     private final AttachmentRepository attachmentRepository;
     private final TaskRepository taskRepository;
@@ -54,11 +54,11 @@ public class AttachmentServiceImpl implements AttachmentService {
     @Override
     @Cacheable(
             cacheNames = TaskManagementCacheNames.ATTACHMENT_LIST,
-            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()"
-    )
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()")
     public List<Attachment> getAllAttachments() {
         if (SecurityUtils.hasAnyRole("ADMIN", "PROJECT_MANAGER", "TEAM_LEADER")) {
-            return attachmentRepository.findAllByDeletedFalseAndTaskDeletedFalseAndTaskProjectDeletedFalseOrderByIdAsc();
+            return attachmentRepository
+                    .findAllByDeletedFalseAndTaskDeletedFalseAndTaskProjectDeletedFalseOrderByIdAsc();
         }
 
         String currentUsername = SecurityUtils.getCurrentUsername();
@@ -67,19 +67,20 @@ public class AttachmentServiceImpl implements AttachmentService {
         }
 
         return attachmentRepository
-                .findAllByDeletedFalseAndTaskDeletedFalseAndTaskProjectDeletedFalseAndTaskAssigneeDeletedFalseAndTaskAssigneeEmailIgnoreCaseOrderByIdAsc(currentUsername);
+                .findAllByDeletedFalseAndTaskDeletedFalseAndTaskProjectDeletedFalseAndTaskAssigneeDeletedFalseAndTaskAssigneeEmailIgnoreCaseOrderByIdAsc(
+                        currentUsername);
     }
 
     @Override
     @Cacheable(
             cacheNames = TaskManagementCacheNames.ATTACHMENT_DETAILS,
-            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)"
-    )
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)")
     public Attachment findById(Long id) {
         Long requiredId = requireId(id, "Attachment id");
 
         if (SecurityUtils.hasAnyRole("ADMIN", "PROJECT_MANAGER", "TEAM_LEADER")) {
-            return attachmentRepository.findByIdAndDeletedFalseAndTaskDeletedFalseAndTaskProjectDeletedFalse(requiredId)
+            return attachmentRepository
+                    .findByIdAndDeletedFalseAndTaskDeletedFalseAndTaskProjectDeletedFalse(requiredId)
                     .orElseThrow(AttachmentNotFoundException::new);
         }
 
@@ -89,7 +90,8 @@ public class AttachmentServiceImpl implements AttachmentService {
         }
 
         return attachmentRepository
-                .findByIdAndDeletedFalseAndTaskDeletedFalseAndTaskProjectDeletedFalseAndTaskAssigneeDeletedFalseAndTaskAssigneeEmailIgnoreCase(requiredId, currentUsername)
+                .findByIdAndDeletedFalseAndTaskDeletedFalseAndTaskProjectDeletedFalseAndTaskAssigneeDeletedFalseAndTaskAssigneeEmailIgnoreCase(
+                        requiredId, currentUsername)
                 .orElseThrow(AttachmentNotFoundException::new);
     }
 
@@ -101,7 +103,8 @@ public class AttachmentServiceImpl implements AttachmentService {
         }
         Long requiredTaskId = requireId(taskId, "Task id");
 
-        Task task = taskRepository.findByIdAndDeletedFalseAndProjectDeletedFalse(requiredTaskId)
+        Task task = taskRepository
+                .findByIdAndDeletedFalseAndProjectDeletedFalse(requiredTaskId)
                 .orElseThrow(TaskNotFoundException::new);
         validateTaskAccess(task);
 
@@ -143,8 +146,7 @@ public class AttachmentServiceImpl implements AttachmentService {
                 TaskManagementEntityType.ATTACHMENT,
                 persistedAttachment.getId(),
                 TaskManagementEventAction.UPLOADED,
-                "Uploaded attachment " + persistedAttachment.getFileName()
-        ));
+                "Uploaded attachment " + persistedAttachment.getFileName()));
         return persistedAttachment;
     }
 
@@ -164,8 +166,7 @@ public class AttachmentServiceImpl implements AttachmentService {
                 TaskManagementEntityType.ATTACHMENT,
                 persistedAttachment.getId(),
                 TaskManagementEventAction.UPDATED,
-                "Renamed attachment " + persistedAttachment.getFileName()
-        ));
+                "Renamed attachment " + persistedAttachment.getFileName()));
         return persistedAttachment;
     }
 
@@ -181,8 +182,7 @@ public class AttachmentServiceImpl implements AttachmentService {
                 TaskManagementEntityType.ATTACHMENT,
                 persistedAttachment.getId(),
                 TaskManagementEventAction.DELETED,
-                "Deleted attachment " + persistedAttachment.getFileName()
-        ));
+                "Deleted attachment " + persistedAttachment.getFileName()));
     }
 
     @Autowired(required = false)
@@ -233,6 +233,3 @@ public class AttachmentServiceImpl implements AttachmentService {
         return Objects.requireNonNull(id, fieldName + " is required");
     }
 }
-
-
-

@@ -5,5 +5,3 @@ public class ProjectNotFoundException extends RuntimeException {
         super("Project not found!");
     }
 }
-
-

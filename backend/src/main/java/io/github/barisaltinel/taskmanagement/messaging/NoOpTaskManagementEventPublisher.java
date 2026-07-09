@@ -4,6 +4,5 @@ public class NoOpTaskManagementEventPublisher implements TaskManagementEventPubl
     static final NoOpTaskManagementEventPublisher INSTANCE = new NoOpTaskManagementEventPublisher();
 
     @Override
-    public void publish(TaskManagementEvent event) {
-    }
+    public void publish(TaskManagementEvent event) {}
 }

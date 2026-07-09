@@ -11,16 +11,15 @@ import io.github.barisaltinel.taskmanagement.model.User;
 import io.github.barisaltinel.taskmanagement.repository.UserRepository;
 import io.github.barisaltinel.taskmanagement.service.UserService;
 import io.github.barisaltinel.taskmanagement.util.SecurityUtils;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -40,8 +39,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Cacheable(
             cacheNames = TaskManagementCacheNames.USER_LIST,
-            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()"
-    )
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).currentAccessScope()")
     public List<User> getAllUsers() {
         return userRepository.findAllByDeletedFalseOrderByIdAsc();
     }
@@ -49,13 +47,11 @@ public class UserServiceImpl implements UserService {
     @Override
     @Cacheable(
             cacheNames = TaskManagementCacheNames.USER_DETAILS,
-            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)"
-    )
+            key = "T(io.github.barisaltinel.taskmanagement.cache.TaskManagementCacheKeys).scopedId(#id)")
     public User findById(Long id) {
         Long requiredId = requireId(id, "User id");
 
-        return userRepository.findByIdAndDeletedFalse(requiredId)
-                .orElseThrow(UserNotFoundException::new);
+        return userRepository.findByIdAndDeletedFalse(requiredId).orElseThrow(UserNotFoundException::new);
     }
 
     @Override
@@ -72,8 +68,7 @@ public class UserServiceImpl implements UserService {
                 TaskManagementEntityType.USER,
                 persistedUser.getId(),
                 TaskManagementEventAction.CREATED,
-                "Created user " + persistedUser.getEmail()
-        ));
+                "Created user " + persistedUser.getEmail()));
         return persistedUser;
     }
 
@@ -93,8 +88,7 @@ public class UserServiceImpl implements UserService {
                 persistedUser.getId(),
                 TaskManagementEventAction.REGISTERED,
                 persistedUser.getEmail(),
-                "Registered a new account"
-        ));
+                "Registered a new account"));
         return persistedUser;
     }
 
@@ -134,8 +128,7 @@ public class UserServiceImpl implements UserService {
                 TaskManagementEntityType.USER,
                 persistedUser.getId(),
                 TaskManagementEventAction.UPDATED,
-                "Updated user " + persistedUser.getEmail()
-        ));
+                "Updated user " + persistedUser.getEmail()));
         return persistedUser;
     }
 
@@ -150,8 +143,7 @@ public class UserServiceImpl implements UserService {
                 TaskManagementEntityType.USER,
                 persistedUser.getId(),
                 TaskManagementEventAction.DELETED,
-                "Archived user " + persistedUser.getEmail()
-        ));
+                "Archived user " + persistedUser.getEmail()));
     }
 
     @Autowired(required = false)
@@ -216,6 +208,3 @@ public class UserServiceImpl implements UserService {
         return Objects.requireNonNull(id, fieldName + " is required");
     }
 }
-
-
-

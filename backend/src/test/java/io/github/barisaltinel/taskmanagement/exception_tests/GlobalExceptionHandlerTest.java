@@ -1,12 +1,12 @@
 package io.github.barisaltinel.taskmanagement.exception_tests;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.github.barisaltinel.taskmanagement.exception.GlobalExceptionHandler;
 import io.github.barisaltinel.taskmanagement.exception.TaskNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class GlobalExceptionHandlerTest {
 
@@ -21,5 +21,3 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody()).isEqualTo("Task not found!");
     }
 }
-
-

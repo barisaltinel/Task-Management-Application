@@ -33,10 +33,7 @@ public class RabbitTaskManagementMessagingConfig {
 
     @Bean
     public Binding taskManagementBinding(
-            Queue taskManagementQueue,
-            TopicExchange taskManagementExchange,
-            RabbitMessagingProperties properties
-    ) {
+            Queue taskManagementQueue, TopicExchange taskManagementExchange, RabbitMessagingProperties properties) {
         return BindingBuilder.bind(taskManagementQueue)
                 .to(taskManagementExchange)
                 .with(properties.getRoutingKey());
@@ -49,9 +46,7 @@ public class RabbitTaskManagementMessagingConfig {
 
     @Bean
     public RabbitTemplate rabbitTemplate(
-            ConnectionFactory connectionFactory,
-            Jackson2JsonMessageConverter rabbitMessageConverter
-    ) {
+            ConnectionFactory connectionFactory, Jackson2JsonMessageConverter rabbitMessageConverter) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(rabbitMessageConverter);
         return rabbitTemplate;
@@ -59,9 +54,7 @@ public class RabbitTaskManagementMessagingConfig {
 
     @Bean
     public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
-            ConnectionFactory connectionFactory,
-            Jackson2JsonMessageConverter rabbitMessageConverter
-    ) {
+            ConnectionFactory connectionFactory, Jackson2JsonMessageConverter rabbitMessageConverter) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(rabbitMessageConverter);

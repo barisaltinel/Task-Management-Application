@@ -1,8 +1,7 @@
 package io.github.barisaltinel.taskmanagement.service;
 
-import io.github.barisaltinel.taskmanagement.model.Project;
 import io.github.barisaltinel.taskmanagement.exception.ProjectNotFoundException;
-
+import io.github.barisaltinel.taskmanagement.model.Project;
 import java.util.List;
 
 public interface ProjectService {
@@ -16,6 +15,3 @@ public interface ProjectService {
 
     void softDelete(Long id);
 }
-
-
-

@@ -2,10 +2,11 @@ package io.github.barisaltinel.taskmanagement.controller;
 
 import io.github.barisaltinel.taskmanagement.dto.ApiDtos;
 import io.github.barisaltinel.taskmanagement.dto.ApiMapper;
+import io.github.barisaltinel.taskmanagement.exception.UserNotFoundException;
 import io.github.barisaltinel.taskmanagement.model.User;
 import io.github.barisaltinel.taskmanagement.service.UserService;
-import io.github.barisaltinel.taskmanagement.exception.UserNotFoundException;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,8 +20,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -33,7 +32,9 @@ public class UserController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ApiDtos.UserResponse>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers().stream().map(ApiMapper::toUserResponse).toList());
+        return ResponseEntity.ok(userService.getAllUsers().stream()
+                .map(ApiMapper::toUserResponse)
+                .toList());
     }
 
     @GetMapping("/{id}")
@@ -52,9 +53,7 @@ public class UserController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or authentication.principal.username == @userService.findById(#id).email")
     public ResponseEntity<ApiDtos.UserResponse> updateUser(
-            @PathVariable Long id,
-            @Valid @RequestBody ApiDtos.UserUpdateRequest request
-    ) {
+            @PathVariable Long id, @Valid @RequestBody ApiDtos.UserUpdateRequest request) {
         User updatedUser = userService.update(id, ApiMapper.toUser(request));
         return ResponseEntity.ok(ApiMapper.toUserResponse(updatedUser));
     }
@@ -71,6 +70,3 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 }
-
-
-

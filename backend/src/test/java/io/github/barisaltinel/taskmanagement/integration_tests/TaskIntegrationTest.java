@@ -1,5 +1,10 @@
 package io.github.barisaltinel.taskmanagement.integration_tests;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.barisaltinel.taskmanagement.dto.ApiDtos;
 import io.github.barisaltinel.taskmanagement.model.Project;
@@ -7,11 +12,13 @@ import io.github.barisaltinel.taskmanagement.model.ProjectStatus;
 import io.github.barisaltinel.taskmanagement.model.Task;
 import io.github.barisaltinel.taskmanagement.model.TaskPriority;
 import io.github.barisaltinel.taskmanagement.model.TaskState;
+import io.github.barisaltinel.taskmanagement.model.User;
 import io.github.barisaltinel.taskmanagement.repository.ProjectRepository;
 import io.github.barisaltinel.taskmanagement.repository.TaskRepository;
 import io.github.barisaltinel.taskmanagement.repository.UserRepository;
-import io.github.barisaltinel.taskmanagement.model.User;
 import jakarta.transaction.Transactional;
+import java.time.LocalDate;
+import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,14 +29,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.time.LocalDate;
-import java.util.Objects;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -95,8 +94,7 @@ class TaskIntegrationTest {
                 LocalDate.now(),
                 LocalDate.now().plusDays(9),
                 project.getId(),
-                assignee.getId()
-        );
+                assignee.getId());
 
         mockMvc.perform(post("/api/tasks")
                         .contentType(requireMediaType(MediaType.APPLICATION_JSON))
@@ -108,8 +106,7 @@ class TaskIntegrationTest {
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
     void shouldCancelTaskSuccessfully() throws Exception {
-        mockMvc.perform(put("/api/tasks/" + task.getId() + "/cancel")
-                        .param("reason", "No longer needed"))
+        mockMvc.perform(put("/api/tasks/" + task.getId() + "/cancel").param("reason", "No longer needed"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.state").value("CANCELLED"))
                 .andExpect(jsonPath("$.reason").value("No longer needed"));
@@ -127,5 +124,3 @@ class TaskIntegrationTest {
         return Objects.requireNonNull(content, "Serialized content is required");
     }
 }
-
-
